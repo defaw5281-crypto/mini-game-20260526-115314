@@ -704,23 +704,29 @@ function getCardSize() {
 function isCardBlocked(card, boardRect = els.board?.getBoundingClientRect?.() || { width: 360, height: 360 }) {
   if (card.isRemoved) return true;
 
+  const activeCards = GameState.boardCards.filter((item) => !item.isRemoved);
+  const topLayer = Math.max(...activeCards.map((item) => item.layer || 0));
+
+  // 强规则：不是当前最高层的牌，全部视为被压住
+  if ((card.layer || 0) < topLayer) {
+    card.blockedBy = activeCards
+      .filter((item) => !item.isRemoved && (item.layer || 0) > (card.layer || 0))
+      .map((item) => item.id);
+    return true;
+  }
+
+  // 同一最高层内部，如果被其他更靠后的牌压住，也不允许点
   const ownRect = cardRect(card, boardRect);
   const blockers = [];
 
-  GameState.boardCards.forEach((other) => {
-    if (other.isRemoved || other.id === card.id) return;
-    if (other.layer <= card.layer) return;
+  activeCards.forEach((other) => {
+    if (other.id === card.id) return;
+    if ((other.layer || 0) < (card.layer || 0)) return;
 
     const otherRect = cardRect(other, boardRect);
     const area = overlapArea(ownRect, otherRect);
 
-    const dx = Math.abs((other.x || 0) - (card.x || 0));
-    const dy = Math.abs((other.y || 0) - (card.y || 0));
-
-    const rectBlocked = area > ownRect.width * ownRect.height * 0.03;
-const nearBlocked = dx < 0.16 && dy < 0.14;
-
-    if (rectBlocked || nearBlocked) {
+    if (area > ownRect.width * ownRect.height * 0.15) {
       blockers.push(other.id);
     }
   });
@@ -728,7 +734,6 @@ const nearBlocked = dx < 0.16 && dy < 0.14;
   card.blockedBy = blockers;
   return blockers.length > 0;
 }
-
 function updateCardBlockState() {
   const boardRect = els.board?.getBoundingClientRect?.() || { width: 360, height: 360 };
   GameState.boardCards.forEach((card) => {
