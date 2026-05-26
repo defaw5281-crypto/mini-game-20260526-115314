@@ -1,97 +1,110 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#93d8ff" />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="小孟--翻牌挑战" />
-    <meta name="description" content="免登录、无广告、手机优先的纯静态叠牌三消小游戏。" />
-    <title>小孟--翻牌挑战 V520.13.14</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <div class="game-shell">
-      <header class="status-bar" aria-label="游戏状态">
-        <div class="status-card lives-card">
-          <span class="status-icon" aria-hidden="true">❤</span>
-          <strong id="livesText">5</strong>
-        </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#9bdcf7" />
+  <title>小孟--翻牌挑战 V2</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
 
-        <div class="level-card">
-          <div class="level-title" id="levelTitle">第 1 关</div>
-          <div class="version-badge">V520.13.14</div>
-          <div class="star-row" id="starRow" aria-label="星级进度"></div>
-          <div class="progress-track" aria-hidden="true">
-            <span id="progressFill"></span>
-          </div>
-        </div>
+<body>
+  <main class="game" id="game">
+    <section class="top-hud">
+      <div class="hud-pill">
+        <span class="hud-icon">❤</span>
+        <strong id="livesText">5</strong>
+      </div>
 
-        <div class="status-card coin-card">
-          <span class="status-icon coin" aria-hidden="true">●</span>
-          <strong id="coinText">0</strong>
-          <button id="helpBtn" class="round-btn help-round" type="button" aria-label="玩法说明">?</button>
-          <button id="settingsBtn" class="round-btn settings-round" type="button" aria-label="设置">⚙</button>
-        </div>
-      </header>
-
-      <main class="playfield">
-        <section class="board-stage" aria-label="主牌区">
-          <div id="levelStrip" class="level-strip" aria-label="关卡选择"></div>
-          <div id="board" class="board" aria-label="叠牌牌堆"></div>
-          <div id="floatLayer" class="float-layer" aria-live="polite"></div>
-        </section>
-
-        <section class="reserve-area" aria-label="备用牌堆">
-          <div id="reservePiles" class="reserve-piles"></div>
-        </section>
-
-        <section class="slot-area" aria-label="卡槽区">
-          <div class="slot-title">
-            <span id="slotCountText">卡槽 0 / 7</span>
-            <span id="riskText">稳住节奏</span>
-          </div>
-          <div id="slots" class="slots"></div>
-        </section>
-      </main>
-
-      <footer class="tool-bar" aria-label="道具栏">
-        <button id="hintBtn" class="tool-btn" type="button">
-          <span class="tool-icon" aria-hidden="true">💡</span>
-          <span>提示</span>
-          <b id="hintCount">0</b>
-        </button>
-        <button id="undoBtn" class="tool-btn" type="button">
-          <span class="tool-icon" aria-hidden="true">↶</span>
-          <span>撤回</span>
-          <b id="undoCount">0</b>
-        </button>
-        <button id="shuffleBtn" class="tool-btn" type="button">
-          <span class="tool-icon" aria-hidden="true">🔀</span>
-          <span>洗牌</span>
-          <b id="shuffleCount">0</b>
-        </button>
-        <button id="expandBtn" class="tool-btn wide" type="button">
-          <span class="tool-icon" aria-hidden="true">▶</span>
-          <span>加 3 格</span>
-          <b id="expandCount">0</b>
-        </button>
-      </footer>
-    </div>
-
-    <dialog id="gameDialog" class="game-dialog">
-      <div class="dialog-card">
-        <h2 id="dialogTitle">小孟--翻牌挑战</h2>
-        <p id="dialogText">点开没有被压住的牌，任意三张相同会自动消除。底部卡槽满了才会失败。</p>
-        <div class="dialog-actions">
-          <button id="resetProgressBtn" class="secondary-btn" type="button">重置进度</button>
-          <button id="dialogPrimaryBtn" type="button">开始</button>
+      <div class="level-panel">
+        <div class="level-title" id="levelTitle">第 1 关</div>
+        <div class="level-sub" id="levelSub">稳住节奏</div>
+        <div class="stars" id="stars">☆ ☆ ☆</div>
+        <div class="progress-bar">
+          <span id="progressFill"></span>
         </div>
       </div>
-    </dialog>
 
-    <script src="./game.js" defer></script>
-  </body>
+      <div class="hud-pill coin-pill">
+        <span class="hud-icon">🟡</span>
+        <strong id="coinText">0</strong>
+        <button class="round-btn" id="helpBtn" type="button">?</button>
+        <button class="round-btn" id="resetBtn" type="button">⚙</button>
+      </div>
+    </section>
+
+    <section class="level-tabs" id="levelTabs"></section>
+
+    <section class="playfield">
+      <div class="board-shadow"></div>
+      <div class="board" id="board" aria-label="主牌区"></div>
+    </section>
+
+    <section class="reserve-row" id="reservePiles" aria-label="备用牌堆"></section>
+
+    <section class="slot-panel">
+      <div class="slot-head">
+        <strong id="slotCount">卡槽 0 / 7</strong>
+        <span id="paceText">开局热身</span>
+      </div>
+      <div class="slots" id="slots"></div>
+    </section>
+
+    <section class="tool-row">
+      <button class="tool-btn" id="hintBtn" type="button">
+        <span class="tool-count" id="hintCount">3</span>
+        <span class="tool-icon">💡</span>
+        <strong>提示</strong>
+      </button>
+
+      <button class="tool-btn" id="undoBtn" type="button">
+        <span class="tool-count" id="undoCount">3</span>
+        <span class="tool-icon">↩</span>
+        <strong>撤回</strong>
+      </button>
+
+      <button class="tool-btn" id="shuffleBtn" type="button">
+        <span class="tool-count" id="shuffleCount">1</span>
+        <span class="tool-icon">🔀</span>
+        <strong>洗牌</strong>
+      </button>
+
+      <button class="tool-btn primary-tool" id="expandBtn" type="button">
+        <span class="tool-count" id="expandCount">1</span>
+        <span class="tool-icon">▶</span>
+        <strong>加 3 格</strong>
+      </button>
+    </section>
+  </main>
+
+  <div class="modal hidden" id="helpModal">
+    <div class="modal-card">
+      <h2>玩法说明</h2>
+      <p>点击没有被压住的牌进入卡槽，三个相同自动消除。</p>
+      <p>底部基础卡槽最多 7 格。卡槽满且无法消除，则挑战失败。</p>
+      <p>灰色牌代表被上层压住，暂时不能点击。</p>
+      <hr />
+      <p><strong>🎁 奖励牌：</strong>获得道具或金币。</p>
+      <p><strong>⚠ 陷阱牌：</strong>触发轻惩罚，不会直接失败。</p>
+      <p><strong>?</strong> 未知牌：可能变成普通牌、奖励牌或陷阱牌。</p>
+      <p><strong>⭐ 万能牌：</strong>可配合两张相同牌消除。</p>
+      <button id="closeHelpBtn" type="button">知道了</button>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="resultModal">
+    <div class="modal-card">
+      <h2 id="resultTitle">通关</h2>
+      <p id="resultText">继续下一关。</p>
+      <div class="modal-actions">
+        <button id="retryBtn" type="button">重试</button>
+        <button id="nextBtn" type="button">下一关</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="./game.js"></script>
+</body>
 </html>
