@@ -703,15 +703,28 @@ function getCardSize() {
 
 function isCardBlocked(card, boardRect = els.board?.getBoundingClientRect?.() || { width: 360, height: 360 }) {
   if (card.isRemoved) return true;
+
   const ownRect = cardRect(card, boardRect);
   const blockers = [];
+
   GameState.boardCards.forEach((other) => {
-    if (other.isRemoved || other.id === card.id || other.layer <= card.layer) return;
-    const area = overlapArea(ownRect, cardRect(other, boardRect));
-    if (area > 1) {
+    if (other.isRemoved || other.id === card.id) return;
+    if (other.layer <= card.layer) return;
+
+    const otherRect = cardRect(other, boardRect);
+    const area = overlapArea(ownRect, otherRect);
+
+    const dx = Math.abs((other.x || 0) - (card.x || 0));
+    const dy = Math.abs((other.y || 0) - (card.y || 0));
+
+    const rectBlocked = area > ownRect.width * ownRect.height * 0.08;
+    const nearBlocked = dx < 0.13 && dy < 0.11;
+
+    if (rectBlocked || nearBlocked) {
       blockers.push(other.id);
     }
   });
+
   card.blockedBy = blockers;
   return blockers.length > 0;
 }
