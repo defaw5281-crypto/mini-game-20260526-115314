@@ -531,3 +531,16 @@ button {
     height: 76px;
   }
 }
+
+.reserve-pile::before,
+.reserve-pile::after {
+  display: none !important;
+}
+
+.reserve-card {
+  z-index: 3;
+}
+
+.reserve-count {
+  z-index: 4;
+}
