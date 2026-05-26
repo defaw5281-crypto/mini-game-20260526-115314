@@ -1,7 +1,9 @@
 const SYMBOLS = ["🌸", "🍃", "🍄", "🥕", "🍓", "⭐", "💠", "🌾", "☘️", "🌼", "🌷", "🍀"];
-const STORAGE_KEY = "garden-stack-match-progress-v2";
+const STORAGE_KEY = "xiaomeng-flip-challenge-progress-v520";
 const BASE_SLOTS = 7;
 const EXPANDED_SLOTS = 10;
+const GAME_NAME = "小孟--翻牌挑战";
+const GAME_VERSION = "V520.13.14";
 
 const LEVELS = [
   {
@@ -39,7 +41,7 @@ const LEVELS = [
     name: "问号旋涡",
     normalGroups: 18,
     layers: 6,
-    template: "spiral",
+    template: "petal",
     reservePileCount: 3,
     reservePileSize: 5,
     rewardCount: 1,
@@ -69,7 +71,7 @@ const LEVELS = [
     name: "诱导开口",
     normalGroups: 28,
     layers: 8,
-    template: "trap",
+    template: "diamond",
     reservePileCount: 3,
     reservePileSize: 6,
     rewardCount: 2,
@@ -94,6 +96,7 @@ const els = {
   coinText: document.querySelector("#coinText"),
   slotCountText: document.querySelector("#slotCountText"),
   riskText: document.querySelector("#riskText"),
+  helpBtn: document.querySelector("#helpBtn"),
   settingsBtn: document.querySelector("#settingsBtn"),
   hintBtn: document.querySelector("#hintBtn"),
   undoBtn: document.querySelector("#undoBtn"),
@@ -233,6 +236,180 @@ function makeCard({ type = "normal", symbol = "", layer = 0, x = 0.5, y = 0.5, s
 
 function generateTemplatePositions(template, count, layers) {
   const positions = [];
+  const pushGrid = (layer, cells, scaleX = 0.112, scaleY = 0.092) => {
+    const layerOffset = layer * 0.018;
+    cells.forEach(([cx, cy]) => {
+      positions.push({
+        layer,
+        x: 0.5 + cx * scaleX + layerOffset,
+        y: 0.5 + cy * scaleY + layerOffset,
+        rot: 0,
+      });
+    });
+  };
+
+  const shapeCells = {
+    pyramid: [
+      [0, -3],
+      [-1, -2],
+      [0, -2],
+      [1, -2],
+      [-2, -1],
+      [-1, -1],
+      [0, -1],
+      [1, -1],
+      [2, -1],
+      [-3, 0],
+      [-2, 0],
+      [-1, 0],
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [-3, 1],
+      [-2, 1],
+      [-1, 1],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [3, 1],
+      [-2, 2],
+      [-1, 2],
+      [0, 2],
+      [1, 2],
+      [2, 2],
+    ],
+    diamond: [
+      [0, -3],
+      [-1, -2],
+      [0, -2],
+      [1, -2],
+      [-2, -1],
+      [-1, -1],
+      [0, -1],
+      [1, -1],
+      [2, -1],
+      [-3, 0],
+      [-2, 0],
+      [-1, 0],
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [-2, 1],
+      [-1, 1],
+      [0, 1],
+      [1, 1],
+      [2, 1],
+      [-1, 2],
+      [0, 2],
+      [1, 2],
+      [0, 3],
+    ],
+    cross: [
+      [0, -3],
+      [0, -2],
+      [-1, -1],
+      [0, -1],
+      [1, -1],
+      [-3, 0],
+      [-2, 0],
+      [-1, 0],
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [-1, 1],
+      [0, 1],
+      [1, 1],
+      [0, 2],
+      [0, 3],
+    ],
+    twin: [
+      [-3, -2],
+      [-2, -2],
+      [-3, -1],
+      [-2, -1],
+      [-1, -1],
+      [-3, 0],
+      [-2, 0],
+      [-1, 0],
+      [-3, 1],
+      [-2, 1],
+      [-3, 2],
+      [-2, 2],
+      [2, -2],
+      [3, -2],
+      [1, -1],
+      [2, -1],
+      [3, -1],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [2, 1],
+      [3, 1],
+      [2, 2],
+      [3, 2],
+      [0, 0],
+    ],
+    petal: [
+      [0, -3],
+      [-1, -2],
+      [1, -2],
+      [-2, -1],
+      [0, -1],
+      [2, -1],
+      [-3, 0],
+      [-1, 0],
+      [0, 0],
+      [1, 0],
+      [3, 0],
+      [-2, 1],
+      [0, 1],
+      [2, 1],
+      [-1, 2],
+      [1, 2],
+      [0, 3],
+    ],
+  };
+
+  const baseCells = shapeCells[template] || shapeCells.pyramid;
+  const expandedCells = [];
+  for (let repeat = 0; repeat < 4; repeat += 1) {
+    baseCells.forEach(([x, y]) => {
+      expandedCells.push([x + (repeat % 2) * 0.5, y + Math.floor(repeat / 2) * 0.5]);
+    });
+  }
+
+  for (let layer = 0; layer < layers; layer += 1) {
+    const shrink = Math.max(0.58, 1 - layer * 0.055);
+    const cells = expandedCells.map(([x, y]) => [x * shrink, y * shrink]);
+    pushGrid(layer, cells);
+  }
+
+  while (positions.length < count) {
+    const layer = positions.length % layers;
+    const row = Math.floor(positions.length / 5) % 5;
+    const col = positions.length % 5;
+    positions.push({
+      layer,
+      x: 0.5 + (col - 2) * 0.105 + layer * 0.018,
+      y: 0.5 + (row - 2) * 0.09 + layer * 0.018,
+      rot: 0,
+    });
+  }
+
+  return positions
+    .map((pos) => ({
+      ...pos,
+      x: clamp(pos.x, 0.08, 0.92),
+      y: clamp(pos.y, 0.08, 0.88),
+      rot: 0,
+    }));
+}
+
+function legacyGenerateTemplatePositions(template, count, layers) {
+  const positions = [];
   if (template === "pyramid") {
     for (let layer = 0; layer < layers; layer += 1) {
       const span = 0.72 - layer * 0.08;
@@ -353,7 +530,13 @@ function planLayerCounts(count, layers) {
 
 function selectLayeredPositions(positions, count, layers) {
   const groups = Array.from({ length: layers }, (_, layer) => positions.filter((pos) => pos.layer === layer));
-  groups.forEach(shuffle);
+  groups.forEach((group) => {
+    group.sort((a, b) => {
+      const ar = Math.hypot(a.x - 0.5, a.y - 0.5);
+      const br = Math.hypot(b.x - 0.5, b.y - 0.5);
+      return ar - br;
+    });
+  });
   const counts = planLayerCounts(count, layers);
   const selected = [];
   for (let layer = layers - 1; layer >= 0; layer -= 1) {
@@ -603,29 +786,43 @@ function getCardSize() {
   return parseFloat(value) || 54;
 }
 
-function updateClickability() {
+function isCardBlocked(card, boardRect = els.board?.getBoundingClientRect?.() || { width: 360, height: 360 }) {
+  if (card.isRemoved) return true;
+  const ownRect = cardRect(card, boardRect);
+  const blockers = [];
+  GameState.boardCards.forEach((other) => {
+    if (other.isRemoved || other.id === card.id || other.layer <= card.layer) return;
+    const area = overlapArea(ownRect, cardRect(other, boardRect));
+    if (area > 1) {
+      blockers.push(other.id);
+    }
+  });
+  card.blockedBy = blockers;
+  return blockers.length > 0;
+}
+
+function updateCardBlockState() {
   const boardRect = els.board?.getBoundingClientRect?.() || { width: 360, height: 360 };
   GameState.boardCards.forEach((card) => {
     card.blockedBy = [];
     card.isClickable = false;
     if (card.isRemoved) return;
-    const ownRect = cardRect(card, boardRect);
-    const ownArea = ownRect.width * ownRect.height;
-    GameState.boardCards.forEach((other) => {
-      if (other.isRemoved || other.layer <= card.layer || other.id === card.id) return;
-      const area = overlapArea(ownRect, cardRect(other, boardRect));
-      if (area / ownArea > 0.1) {
-        card.blockedBy.push(other.id);
-      }
-    });
-    card.isClickable = card.blockedBy.length === 0;
+    card.isClickable = !isCardBlocked(card, boardRect);
   });
+}
+
+function recalcBoardState() {
+  updateCardBlockState();
+}
+
+function updateClickability() {
+  recalcBoardState();
 }
 
 function clickBoardCard(cardId) {
   const card = GameState.boardCards.find((item) => item.id === cardId);
   if (!card || card.isRemoved || GameState.status !== "playing") return;
-  updateClickability();
+  recalcBoardState();
   if (!card.isClickable) {
     shakeCard(card.id);
     showToast("这张还被压住");
@@ -980,7 +1177,7 @@ function shakeCard(cardId) {
 function showDialog(title, text, primary) {
   if (GameState.testing) return;
   els.dialogTitle.textContent = title;
-  els.dialogText.textContent = text;
+  els.dialogText.innerHTML = text;
   els.dialogPrimaryBtn.textContent = primary;
   if (!els.dialog.open) els.dialog.showModal();
 }
@@ -1002,7 +1199,26 @@ function handleDialogPrimary() {
 }
 
 function openSettings() {
-  showDialog("游戏设置", "纯静态网页，无登录、无广告、无外部接口。可以重置进度重新测试关卡。", "继续游戏");
+  showDialog("游戏设置", `${GAME_NAME} ${GAME_VERSION}。纯静态网页，无登录、无广告、无外部接口。可以重置进度重新测试关卡。`, "继续游戏");
+}
+
+function openHelp() {
+  showDialog(
+    "玩法说明",
+    `<ul class="help-list">
+      <li><b>基础玩法</b>：点击没有被上层压住的牌进入卡槽，任意三张相同普通牌会自动消除。</li>
+      <li><b>失败条件</b>：卡槽满，并且没有可消除组合、可点击救场牌、备用牌或可用道具。</li>
+      <li><b>通关条件</b>：清空主牌区、备用牌堆和卡槽里的全部普通牌。</li>
+      <li><b>卡槽上限</b>：基础 7 格；“加 3 格”道具只在本关临时扩展到 10 格。</li>
+      <li><b>道具</b>：提示会标出高价值牌；撤回回退上一步进槽；洗牌只洗未移除普通牌图案；加 3 格用于救急。</li>
+      <li><b>奖励牌</b>：点击后不进卡槽，随机加道具或金币。</li>
+      <li><b>陷阱牌</b>：点击后触发轻惩罚，例如锁槽牌、塞入干扰牌、扣道具或短暂翻面，不会直接判输。</li>
+      <li><b>未知牌</b>：点击后随机变成普通牌、奖励牌、陷阱牌或少量万能牌。</li>
+      <li><b>万能牌</b>：可与两张相同普通牌组成三消。</li>
+      <li><b>干扰牌</b>：由陷阱塞入卡槽，占位置但不参与普通三消。</li>
+    </ul>`,
+    "知道了",
+  );
 }
 
 function bindEvents() {
@@ -1010,6 +1226,7 @@ function bindEvents() {
   els.undoBtn.addEventListener("click", useUndo);
   els.shuffleBtn.addEventListener("click", useShuffle);
   els.expandBtn.addEventListener("click", useExpand);
+  els.helpBtn.addEventListener("click", openHelp);
   els.settingsBtn.addEventListener("click", openSettings);
   els.dialogPrimaryBtn.addEventListener("click", handleDialogPrimary);
   els.resetProgressBtn.addEventListener("click", resetProgress);
@@ -1135,7 +1352,7 @@ function init() {
   startLevel(1);
   GameState.status = "ready";
   renderGame();
-  showDialog("花园叠叠消", "点开没有被压住的牌，任意三张相同会自动消除。第 1 关会先给你几组爽消。", "开始");
+  showDialog(GAME_NAME, `${GAME_VERSION}。点开没有被压住的牌，任意三张相同会自动消除。第 1 关会先给你几组爽消。`, "开始");
   if (new URLSearchParams(window.location.search).get("test") === "1") {
     setTimeout(runGameLogicTests, 80);
   }

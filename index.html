@@ -7,9 +7,9 @@
     <meta name="format-detection" content="telephone=no" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="花园叠叠消" />
+    <meta name="apple-mobile-web-app-title" content="小孟--翻牌挑战" />
     <meta name="description" content="免登录、无广告、手机优先的纯静态叠牌三消小游戏。" />
-    <title>花园叠叠消</title>
+    <title>小孟--翻牌挑战 V520.13.14</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -22,6 +22,7 @@
 
         <div class="level-card">
           <div class="level-title" id="levelTitle">第 1 关</div>
+          <div class="version-badge">V520.13.14</div>
           <div class="star-row" id="starRow" aria-label="星级进度"></div>
           <div class="progress-track" aria-hidden="true">
             <span id="progressFill"></span>
@@ -31,7 +32,8 @@
         <div class="status-card coin-card">
           <span class="status-icon coin" aria-hidden="true">●</span>
           <strong id="coinText">0</strong>
-          <button id="settingsBtn" class="round-btn" type="button" aria-label="设置">⚙</button>
+          <button id="helpBtn" class="round-btn help-round" type="button" aria-label="玩法说明">?</button>
+          <button id="settingsBtn" class="round-btn settings-round" type="button" aria-label="设置">⚙</button>
         </div>
       </header>
 
@@ -81,7 +83,7 @@
 
     <dialog id="gameDialog" class="game-dialog">
       <div class="dialog-card">
-        <h2 id="dialogTitle">花园叠叠消</h2>
+        <h2 id="dialogTitle">小孟--翻牌挑战</h2>
         <p id="dialogText">点开没有被压住的牌，任意三张相同会自动消除。底部卡槽满了才会失败。</p>
         <div class="dialog-actions">
           <button id="resetProgressBtn" class="secondary-btn" type="button">重置进度</button>
