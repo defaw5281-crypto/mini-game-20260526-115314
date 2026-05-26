@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#121a22" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="鹅羊叠叠疯" />
+    <meta
+      name="description"
+      content="一个免登录、无广告、手机优先的叠叠三消网页小游戏。"
+    />
+    <title>鹅羊叠叠疯</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">鹅</span>
+          <div>
+            <h1>鹅羊叠叠疯</h1>
+            <p id="levelTag">第 1 关 · 新手鹅摊</p>
+          </div>
+        </div>
+        <div class="score-strip" aria-live="polite">
+          <div>
+            <span>分数</span>
+            <strong id="score">0</strong>
+          </div>
+          <div>
+            <span>连击</span>
+            <strong id="combo">x1</strong>
+          </div>
+          <div>
+            <span>剩余</span>
+            <strong id="leftCount">0</strong>
+          </div>
+        </div>
+        <nav class="actions" aria-label="游戏操作">
+          <button id="soundBtn" class="icon-btn" type="button" aria-label="开关背景音乐" title="开关背景音乐">♫</button>
+          <button id="helpBtn" class="icon-btn" type="button" aria-label="查看说明" title="查看说明">?</button>
+          <button id="restartBtn" class="icon-btn" type="button" aria-label="重开本关" title="重开本关">↻</button>
+        </nav>
+      </header>
+
+      <main class="game-layout">
+        <section class="board-panel" aria-label="游戏区域">
+          <div class="level-row" id="levelRow" aria-label="关卡选择"></div>
+          <div class="board-wrap">
+            <div class="board-glow" aria-hidden="true"></div>
+            <div id="board" class="board" aria-label="叠叠消除棋盘"></div>
+            <div id="toast" class="toast" role="status" aria-live="polite"></div>
+          </div>
+        </section>
+
+        <aside class="side-panel">
+          <section class="tray-block">
+            <div class="section-title">
+              <h2>鹅槽</h2>
+              <span id="trayCounter">0 / 7</span>
+            </div>
+            <div id="tray" class="tray" aria-label="临时槽"></div>
+          </section>
+
+          <section class="tool-block">
+            <div class="section-title">
+              <h2>道具</h2>
+              <span id="toolHint">每关限量</span>
+            </div>
+            <div class="tools">
+              <button id="hintTool" type="button">
+                <span aria-hidden="true">◎</span>
+                提示
+                <small id="hintLeft">0</small>
+              </button>
+              <button id="undoTool" type="button">
+                <span aria-hidden="true">↶</span>
+                撤回
+                <small id="undoLeft">0</small>
+              </button>
+              <button id="shuffleTool" type="button">
+                <span aria-hidden="true">⟳</span>
+                洗牌
+                <small id="shuffleLeft">0</small>
+              </button>
+              <button id="scoopTool" type="button">
+                <span aria-hidden="true">◇</span>
+                捞一手
+                <small id="scoopLeft">0</small>
+              </button>
+            </div>
+          </section>
+
+          <section class="brief">
+            <h2>本关风味</h2>
+            <p id="levelDesc"></p>
+            <div class="meter" aria-label="难度">
+              <span>难度</span>
+              <div id="difficultyMeter"></div>
+            </div>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <dialog id="guideDialog" class="modal">
+      <div class="modal-card">
+        <h2 id="modalTitle">鹅羊叠叠疯</h2>
+        <p id="modalText">
+          点开没有被压住的物品，三个相同会自动消除。鹅槽满了就翻车。越往后关卡越厚、槽越紧、图案越杂。
+        </p>
+        <ul class="guide-list">
+          <li><b>亮着的</b>可以点，灰着的还被上层压住。</li>
+          <li><b>提示</b>会标出当前更适合下手的一张。</li>
+          <li><b>捞一手</b>会从鹅槽里清掉一种最危险的物品。</li>
+          <li><b>背景音乐</b>需要点击开始后播放，魔性程度可用右上角关闭。</li>
+        </ul>
+        <div class="modal-actions">
+          <button id="shareBtn" type="button" class="secondary">复制挑战链接</button>
+          <button id="startBtn" type="button">开疯</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="./game.js" defer></script>
+  </body>
+</html>
