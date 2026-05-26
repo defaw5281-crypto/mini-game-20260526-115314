@@ -1,699 +1,1144 @@
-const ICONS = [
-  "🥬",
-  "🥕",
-  "🧄",
-  "🍄",
-  "🥚",
-  "🧀",
-  "🍗",
-  "🥐",
-  "🍉",
-  "🧃",
-  "🧦",
-  "🧲",
-  "🪇",
-  "🪩",
-  "🧸",
-  "🧯",
-  "🪣",
-  "🛎️",
-];
+const SYMBOLS = ["🌸", "🍃", "🍄", "🥕", "🍓", "⭐", "💠", "🌾", "☘️", "🌼", "🌷", "🍀"];
+const STORAGE_KEY = "garden-stack-match-progress-v2";
+const BASE_SLOTS = 7;
+const EXPANDED_SLOTS = 10;
 
 const LEVELS = [
   {
-    name: "新手鹅摊",
-    desc: "先热热手。东西少，但遮挡关系已经会骗眼睛。",
-    triples: 10,
+    level: 1,
+    name: "晨光花径",
+    normalGroups: 10,
     layers: 4,
-    iconCount: 7,
-    capacity: 7,
-    jitter: 0.035,
-    tools: { hint: 3, undo: 3, shuffle: 1, scoop: 1 },
+    template: "pyramid",
+    reservePileCount: 3,
+    reservePileSize: 3,
+    rewardCount: 1,
+    trapCount: 0,
+    mysteryCount: 0,
+    jokerCount: 0,
+    initialProps: { hint: 3, undo: 3, shuffle: 1, expand: 1 },
+    difficulty: 1,
   },
   {
-    name: "三倍羊道",
-    desc: "图案开始变多，别被同色食物带跑。",
-    triples: 16,
+    level: 2,
+    name: "树篱十字",
+    normalGroups: 14,
     layers: 5,
-    iconCount: 9,
-    capacity: 7,
-    jitter: 0.05,
-    tools: { hint: 3, undo: 2, shuffle: 1, scoop: 1 },
+    template: "cross",
+    reservePileCount: 3,
+    reservePileSize: 4,
+    rewardCount: 1,
+    trapCount: 0,
+    mysteryCount: 0,
+    jokerCount: 0,
+    initialProps: { hint: 3, undo: 2, shuffle: 1, expand: 1 },
+    difficulty: 2,
   },
   {
-    name: "鸭鸭迷宫",
-    desc: "上层更密，先拆锁，再追三连。",
-    triples: 22,
+    level: 3,
+    name: "问号旋涡",
+    normalGroups: 18,
     layers: 6,
-    iconCount: 11,
-    capacity: 7,
-    jitter: 0.06,
-    tools: { hint: 2, undo: 2, shuffle: 1, scoop: 1 },
+    template: "spiral",
+    reservePileCount: 3,
+    reservePileSize: 5,
+    rewardCount: 1,
+    trapCount: 0,
+    mysteryCount: 2,
+    jokerCount: 1,
+    initialProps: { hint: 2, undo: 2, shuffle: 1, expand: 1 },
+    difficulty: 3,
   },
   {
-    name: "魔音仓库",
-    desc: "鹅槽看起来很大，实际每一步都在挤牙膏。",
-    triples: 28,
+    level: 4,
+    name: "双岛迷园",
+    normalGroups: 22,
     layers: 7,
-    iconCount: 14,
-    capacity: 7,
-    jitter: 0.07,
-    tools: { hint: 2, undo: 1, shuffle: 1, scoop: 1 },
+    template: "twin",
+    reservePileCount: 3,
+    reservePileSize: 5,
+    rewardCount: 2,
+    trapCount: 2,
+    mysteryCount: 2,
+    jokerCount: 1,
+    initialProps: { hint: 2, undo: 2, shuffle: 1, expand: 1 },
+    difficulty: 4,
   },
   {
-    name: "鹅王加班夜",
-    desc: "最终关槽位少一格，图案全员上班。稳住，别乱点。",
-    triples: 36,
-    layers: 9,
-    iconCount: 18,
-    capacity: 6,
-    jitter: 0.08,
-    tools: { hint: 1, undo: 1, shuffle: 1, scoop: 1 },
+    level: 5,
+    name: "诱导开口",
+    normalGroups: 28,
+    layers: 8,
+    template: "trap",
+    reservePileCount: 3,
+    reservePileSize: 6,
+    rewardCount: 2,
+    trapCount: 3,
+    mysteryCount: 3,
+    jokerCount: 2,
+    initialProps: { hint: 2, undo: 1, shuffle: 1, expand: 1 },
+    difficulty: 5,
   },
 ];
 
 const els = {
   board: document.querySelector("#board"),
-  tray: document.querySelector("#tray"),
-  toast: document.querySelector("#toast"),
-  score: document.querySelector("#score"),
-  combo: document.querySelector("#combo"),
-  leftCount: document.querySelector("#leftCount"),
-  trayCounter: document.querySelector("#trayCounter"),
-  levelTag: document.querySelector("#levelTag"),
-  levelRow: document.querySelector("#levelRow"),
-  levelDesc: document.querySelector("#levelDesc"),
-  difficultyMeter: document.querySelector("#difficultyMeter"),
-  guideDialog: document.querySelector("#guideDialog"),
-  modalTitle: document.querySelector("#modalTitle"),
-  modalText: document.querySelector("#modalText"),
-  startBtn: document.querySelector("#startBtn"),
-  shareBtn: document.querySelector("#shareBtn"),
-  helpBtn: document.querySelector("#helpBtn"),
-  restartBtn: document.querySelector("#restartBtn"),
-  soundBtn: document.querySelector("#soundBtn"),
-  hintTool: document.querySelector("#hintTool"),
-  undoTool: document.querySelector("#undoTool"),
-  shuffleTool: document.querySelector("#shuffleTool"),
-  scoopTool: document.querySelector("#scoopTool"),
-  hintLeft: document.querySelector("#hintLeft"),
-  undoLeft: document.querySelector("#undoLeft"),
-  shuffleLeft: document.querySelector("#shuffleLeft"),
-  scoopLeft: document.querySelector("#scoopLeft"),
+  floatLayer: document.querySelector("#floatLayer"),
+  levelStrip: document.querySelector("#levelStrip"),
+  reservePiles: document.querySelector("#reservePiles"),
+  slots: document.querySelector("#slots"),
+  livesText: document.querySelector("#livesText"),
+  levelTitle: document.querySelector("#levelTitle"),
+  starRow: document.querySelector("#starRow"),
+  progressFill: document.querySelector("#progressFill"),
+  coinText: document.querySelector("#coinText"),
+  slotCountText: document.querySelector("#slotCountText"),
+  riskText: document.querySelector("#riskText"),
+  settingsBtn: document.querySelector("#settingsBtn"),
+  hintBtn: document.querySelector("#hintBtn"),
+  undoBtn: document.querySelector("#undoBtn"),
+  shuffleBtn: document.querySelector("#shuffleBtn"),
+  expandBtn: document.querySelector("#expandBtn"),
+  hintCount: document.querySelector("#hintCount"),
+  undoCount: document.querySelector("#undoCount"),
+  shuffleCount: document.querySelector("#shuffleCount"),
+  expandCount: document.querySelector("#expandCount"),
+  dialog: document.querySelector("#gameDialog"),
+  dialogTitle: document.querySelector("#dialogTitle"),
+  dialogText: document.querySelector("#dialogText"),
+  dialogPrimaryBtn: document.querySelector("#dialogPrimaryBtn"),
+  resetProgressBtn: document.querySelector("#resetProgressBtn"),
 };
 
-const state = {
-  levelIndex: 0,
-  tiles: [],
-  tray: [],
-  history: [],
+const GameState = {
+  currentLevel: 1,
+  unlockedLevel: 1,
   score: 0,
+  lives: 5,
+  coins: 0,
+  slots: [],
+  maxSlots: BASE_SLOTS,
+  selectedHistory: [],
+  boardCards: [],
+  reservePiles: [],
+  props: { hint: 0, undo: 0, shuffle: 0, expand: 0 },
   combo: 1,
+  status: "ready",
+  riskMeter: 0,
+  hintedCardId: null,
   started: false,
-  over: false,
-  tools: {},
-  seed: Date.now(),
-  tileRect: { w: 72, h: 82 },
+  testing: false,
 };
 
-function mulberry32(seed) {
-  return function random() {
-    let t = (seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+let idSeed = 0;
+let toastTimer = 0;
+
+function nextId(prefix = "card") {
+  idSeed += 1;
+  return `${prefix}-${Date.now().toString(36)}-${idSeed.toString(36)}`;
 }
 
-function shuffle(list, random = Math.random) {
-  for (let i = list.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [list[i], list[j]] = [list[j], list[i]];
-  }
-  return list;
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-class AudioLoop {
-  constructor() {
-    this.ctx = null;
-    this.timer = null;
-    this.enabled = true;
-    this.step = 0;
-    this.nextTime = 0;
-  }
-
-  async start() {
-    if (!this.enabled) return;
-    if (!this.ctx) {
-      this.ctx = new AudioContext();
-    }
-    if (this.ctx.state === "suspended") {
-      await this.ctx.resume();
-    }
-    if (this.timer) return;
-    this.nextTime = this.ctx.currentTime + 0.05;
-    this.timer = setInterval(() => this.schedule(), 80);
-    this.schedule();
-  }
-
-  stop() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
-  }
-
-  toggle() {
-    this.enabled = !this.enabled;
-    els.soundBtn.classList.toggle("muted", !this.enabled);
-    els.soundBtn.textContent = this.enabled ? "♫" : "×";
-    if (this.enabled) {
-      this.start();
-    } else {
-      this.stop();
-    }
-  }
-
-  blip(freq = 780, duration = 0.05, type = "square", volume = 0.05) {
-    if (!this.ctx || !this.enabled) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, now);
-    gain.gain.setValueAtTime(volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-    osc.connect(gain).connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + duration);
-  }
-
-  note(time, freq, duration, type, volume) {
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, time);
-    gain.gain.setValueAtTime(0.0001, time);
-    gain.gain.exponentialRampToValueAtTime(volume, time + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-    osc.connect(gain).connect(this.ctx.destination);
-    osc.start(time);
-    osc.stop(time + duration + 0.02);
-  }
-
-  schedule() {
-    if (!this.ctx || !this.enabled) return;
-    const bpm = 136;
-    const stepDur = 60 / bpm / 2;
-    const melody = [392, 392, 523, 392, 330, 392, 587, 523, 392, 330, 392, 294, 330, 392, 523, 587];
-    while (this.nextTime < this.ctx.currentTime + 0.42) {
-      const i = this.step % melody.length;
-      const isKick = i % 4 === 0;
-      this.note(this.nextTime, melody[i], 0.09, i % 3 === 0 ? "sawtooth" : "square", 0.022);
-      if (isKick) this.note(this.nextTime, 92, 0.08, "triangle", 0.04);
-      if (i % 8 === 6) this.note(this.nextTime, 740, 0.035, "square", 0.018);
-      this.step += 1;
-      this.nextTime += stepDur;
-    }
+function loadProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    GameState.unlockedLevel = clamp(Number(saved.unlockedLevel) || 1, 1, LEVELS.length);
+    GameState.lives = clamp(Number(saved.lives) || 5, 0, 5);
+    GameState.coins = Number(saved.coins) || 0;
+  } catch {
+    GameState.unlockedLevel = 1;
+    GameState.lives = 5;
+    GameState.coins = 0;
   }
 }
 
-const audio = new AudioLoop();
-
-function getTileSize() {
-  const styles = getComputedStyle(document.documentElement);
-  const w = parseFloat(styles.getPropertyValue("--tile-w")) || 72;
-  const h = parseFloat(styles.getPropertyValue("--tile-h")) || 82;
-  state.tileRect = { w, h };
+function saveProgress() {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      unlockedLevel: GameState.unlockedLevel,
+      lives: GameState.lives,
+      coins: GameState.coins,
+    }),
+  );
 }
 
-function rectFor(tile) {
-  const boardRect = els.board.getBoundingClientRect();
-  const w = state.tileRect.w;
-  const h = state.tileRect.h;
+function resetProgress() {
+  localStorage.removeItem(STORAGE_KEY);
+  GameState.unlockedLevel = 1;
+  GameState.lives = 5;
+  GameState.coins = 0;
+  startLevel(1);
+  showToast("进度已重置");
+}
+
+function shuffle(list) {
+  for (let i = list.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+function makeNormalDeck(config) {
+  const usable = SYMBOLS.slice(0, Math.min(SYMBOLS.length, 5 + config.difficulty));
+  const deck = [];
+  for (let i = 0; i < config.normalGroups; i += 1) {
+    const symbol = usable[i % usable.length];
+    deck.push(symbol, symbol, symbol);
+  }
+
+  const starters = [];
+  if (config.level === 1) {
+    starters.push(usable[0], usable[0], usable[0], usable[1], usable[1], usable[2], usable[2], usable[3]);
+  } else {
+    starters.push(usable[0], usable[0], usable[1], usable[1], usable[2], usable[3], usable[3]);
+  }
+
+  const remaining = deck.filter((symbol, index) => {
+    const starterIndex = starters.indexOf(symbol);
+    if (starterIndex < 0) return true;
+    starters.splice(starterIndex, 1);
+    return false;
+  });
+
+  return [...(config.level === 1 ? [usable[0], usable[0], usable[0], usable[1], usable[1], usable[2], usable[2], usable[3]] : [usable[0], usable[0], usable[1], usable[1], usable[2], usable[3], usable[3]]), ...shuffle(remaining)];
+}
+
+function makeCard({ type = "normal", symbol = "", layer = 0, x = 0.5, y = 0.5, source = "board" }) {
   return {
-    x: tile.x * (boardRect.width - w),
-    y: tile.y * (boardRect.height - h),
-    w,
-    h,
+    id: nextId(type),
+    type,
+    symbol,
+    layer,
+    x,
+    y,
+    width: 1,
+    height: 1,
+    blockedBy: [],
+    isClickable: false,
+    isRemoved: false,
+    isLocked: false,
+    source,
+    faceDownUntil: 0,
   };
 }
 
-function overlaps(a, b, pad = 0.54) {
-  const acx = a.x + a.w / 2;
-  const acy = a.y + a.h / 2;
-  const bcx = b.x + b.w / 2;
-  const bcy = b.y + b.h / 2;
-  return Math.abs(acx - bcx) < a.w * pad && Math.abs(acy - bcy) < a.h * pad;
-}
-
-function isUnlocked(tile) {
-  if (tile.removed) return false;
-  const a = rectFor(tile);
-  return !state.tiles.some((other) => {
-    if (other.removed || other.layer <= tile.layer) return false;
-    return overlaps(a, rectFor(other));
-  });
-}
-
-function makeDeck(config, random) {
-  const icons = ICONS.slice(0, config.iconCount);
-  const deck = [];
-  for (let i = 0; i < config.triples; i += 1) {
-    const icon = icons[i % icons.length];
-    deck.push(icon, icon, icon);
+function generateTemplatePositions(template, count, layers) {
+  const positions = [];
+  if (template === "pyramid") {
+    for (let layer = 0; layer < layers; layer += 1) {
+      const span = 0.72 - layer * 0.08;
+      const rows = Math.max(2, layers + 1 - layer);
+      const cols = Math.max(3, rows + 1);
+      for (let r = 0; r < rows; r += 1) {
+        for (let c = 0; c < cols; c += 1) {
+          const offset = (r % 2) * 0.035;
+          positions.push({
+            layer,
+            x: 0.5 - span / 2 + (span * c) / Math.max(1, cols - 1) + offset,
+            y: 0.15 + layer * 0.055 + (0.68 * r) / Math.max(1, rows - 1),
+            rot: (Math.random() - 0.5) * 4,
+          });
+        }
+      }
+    }
   }
-  return shuffle(deck, random);
+
+  if (template === "cross") {
+    for (let layer = 0; layer < layers; layer += 1) {
+      const width = 0.78 - layer * 0.05;
+      const n = 7 - Math.min(layer, 3);
+      for (let i = 0; i < n; i += 1) {
+        const t = i / Math.max(1, n - 1);
+        positions.push({ layer, x: 0.5 - width / 2 + t * width, y: 0.49 + layer * 0.016, rot: (Math.random() - 0.5) * 5 });
+        positions.push({ layer, x: 0.5 + layer * 0.006, y: 0.16 + t * 0.68, rot: (Math.random() - 0.5) * 5 });
+      }
+    }
+  }
+
+  if (template === "spiral") {
+    const total = Math.max(count, 28);
+    for (let i = 0; i < total * 1.4; i += 1) {
+      const t = i / total;
+      const angle = t * Math.PI * 6.4;
+      const radius = 0.38 - t * 0.23;
+      const layer = i % layers;
+      positions.push({
+        layer,
+        x: 0.5 + Math.cos(angle) * radius + layer * 0.004,
+        y: 0.5 + Math.sin(angle) * radius * 1.18 + layer * 0.006,
+        rot: ((angle * 180) / Math.PI) % 18,
+      });
+    }
+  }
+
+  if (template === "twin") {
+    for (let layer = 0; layer < layers; layer += 1) {
+      const rows = 4 + (layer % 2);
+      const cols = 4;
+      for (let side = 0; side < 2; side += 1) {
+        const cx = side === 0 ? 0.31 : 0.69;
+        for (let r = 0; r < rows; r += 1) {
+          for (let c = 0; c < cols; c += 1) {
+            positions.push({
+              layer,
+              x: cx - 0.17 + c * 0.105 + (r % 2) * 0.025,
+              y: 0.2 + r * 0.13 + layer * 0.018,
+              rot: (Math.random() - 0.5) * 7,
+            });
+          }
+        }
+      }
+      positions.push({ layer, x: 0.5, y: 0.34 + layer * 0.055, rot: (Math.random() - 0.5) * 6 });
+    }
+  }
+
+  if (template === "trap") {
+    for (let layer = 0; layer < layers; layer += 1) {
+      const ring = layer % 3;
+      const cols = 7 - ring;
+      const rows = 5 - (ring === 2 ? 1 : 0);
+      for (let r = 0; r < rows; r += 1) {
+        for (let c = 0; c < cols; c += 1) {
+          const edgeBias = layer > layers - 3 ? 0.04 : 0;
+          positions.push({
+            layer,
+            x: 0.12 + (0.76 * c) / Math.max(1, cols - 1) + (r % 2) * 0.03,
+            y: 0.18 + (0.62 * r) / Math.max(1, rows - 1) + edgeBias,
+            rot: (Math.random() - 0.5) * 9,
+          });
+        }
+      }
+    }
+  }
+
+  while (positions.length < count) {
+    positions.push({
+      layer: Math.floor(Math.random() * layers),
+      x: 0.18 + Math.random() * 0.64,
+      y: 0.16 + Math.random() * 0.68,
+      rot: (Math.random() - 0.5) * 8,
+    });
+  }
+
+  return positions
+    .map((pos) => ({
+      ...pos,
+      x: clamp(pos.x, 0.08, 0.92),
+      y: clamp(pos.y, 0.08, 0.88),
+    }))
+    .slice(0, count);
 }
 
-function layerDistribution(total, layers) {
-  const weights = Array.from({ length: layers }, (_, i) => 1 + i * 0.28);
-  const sum = weights.reduce((a, b) => a + b, 0);
-  const counts = weights.map((w) => Math.floor((w / sum) * total));
-  while (counts.reduce((a, b) => a + b, 0) < total) {
-    counts[counts.length - 1 - ((total + counts[0]) % layers)] += 1;
+function planLayerCounts(count, layers) {
+  const counts = Array(layers).fill(0);
+  const topCount = clamp(Math.round(count * 0.3), Math.min(4, count), Math.min(9, count));
+  counts[layers - 1] = topCount;
+  let remaining = count - topCount;
+  for (let layer = layers - 2; layer >= 0; layer -= 1) {
+    const n = layer === 0 ? remaining : Math.max(1, Math.round(remaining / (layer + 1)));
+    counts[layer] = n;
+    remaining -= n;
   }
   return counts;
 }
 
-function buildTiles(config, seed) {
-  const random = mulberry32(seed);
-  const deck = makeDeck(config, random);
-  const counts = layerDistribution(deck.length, config.layers);
-  const tiles = [];
-  let cursor = 0;
-
-  counts.forEach((count, layer) => {
-    const cols = Math.ceil(Math.sqrt(count * 1.45));
-    const rows = Math.ceil(count / cols);
-    const cells = [];
-    for (let r = 0; r < rows; r += 1) {
-      for (let c = 0; c < cols; c += 1) {
-        cells.push({ c, r });
-      }
-    }
-    shuffle(cells, random);
-    const layerInset = clamp(0.02 + layer * 0.012, 0.02, 0.14);
-    const layerW = 1 - layerInset * 2;
-    const layerH = 1 - layerInset * 2;
-
-    for (let i = 0; i < count; i += 1) {
-      const cell = cells[i % cells.length];
-      const baseX = cols === 1 ? 0.5 : cell.c / (cols - 1);
-      const baseY = rows === 1 ? 0.5 : cell.r / (rows - 1);
-      const wiggle = config.jitter + layer * 0.003;
-      const x = clamp(layerInset + baseX * layerW + (random() - 0.5) * wiggle, 0.01, 0.95);
-      const y = clamp(layerInset + baseY * layerH + (random() - 0.5) * wiggle, 0.01, 0.93);
-      tiles.push({
-        id: `${seed}-${layer}-${i}`,
-        icon: deck[cursor],
-        layer,
-        x,
-        y,
-        rot: (random() - 0.5) * 10,
-        removed: false,
-      });
-      cursor += 1;
-    }
-  });
-
-  return tiles;
-}
-
-function availableTiles() {
-  return state.tiles.filter((tile) => isUnlocked(tile));
-}
-
-function generateLevel(index) {
-  const config = LEVELS[index];
-  let seed = Date.now() + index * 1009;
-  let tiles = [];
-
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    tiles = buildTiles(config, seed + attempt * 71);
-    state.tiles = tiles;
-    const available = availableTiles();
-    const typeCounts = available.reduce((map, tile) => {
-      map.set(tile.icon, (map.get(tile.icon) || 0) + 1);
-      return map;
-    }, new Map());
-    const hasPair = [...typeCounts.values()].some((count) => count >= 2);
-    if (available.length >= Math.min(10, config.iconCount) && hasPair) {
-      state.seed = seed + attempt * 71;
-      return tiles;
+function selectLayeredPositions(positions, count, layers) {
+  const groups = Array.from({ length: layers }, (_, layer) => positions.filter((pos) => pos.layer === layer));
+  groups.forEach(shuffle);
+  const counts = planLayerCounts(count, layers);
+  const selected = [];
+  for (let layer = layers - 1; layer >= 0; layer -= 1) {
+    const group = groups[layer].length ? groups[layer] : positions;
+    for (let i = 0; i < counts[layer]; i += 1) {
+      selected.push(group[i % group.length]);
     }
   }
-
-  state.seed = seed;
-  return tiles;
+  return selected;
 }
 
-function resetLevel(index = state.levelIndex) {
-  state.levelIndex = index;
-  const config = LEVELS[index];
-  state.tiles = generateLevel(index);
-  state.tray = [];
-  state.history = [];
-  state.score = 0;
-  state.combo = 1;
-  state.over = false;
-  state.tools = { ...config.tools };
-  renderAll();
-  showToast(`第 ${index + 1} 关：${config.name}`);
+function buildLevel(config) {
+  const deck = makeNormalDeck(config);
+  const reservePiles = [];
+  for (let pile = 0; pile < config.reservePileCount; pile += 1) {
+    const cards = [];
+    for (let i = 0; i < config.reservePileSize; i += 1) {
+      const symbol = deck.pop();
+      if (symbol) cards.push(makeCard({ type: "normal", symbol, source: "reserve" }));
+    }
+    reservePiles.push(cards);
+  }
+
+  const boardNormalCards = deck.map((symbol) => makeCard({ type: "normal", symbol, source: "board" }));
+  const specials = [];
+  for (let i = 0; i < config.rewardCount; i += 1) specials.push(makeCard({ type: "reward", symbol: "🎁", source: "board" }));
+  for (let i = 0; i < config.trapCount; i += 1) specials.push(makeCard({ type: "trap", symbol: "⚠", source: "board" }));
+  for (let i = 0; i < config.mysteryCount; i += 1) specials.push(makeCard({ type: "mystery", symbol: "?", source: "board" }));
+  for (let i = 0; i < config.jokerCount; i += 1) specials.push(makeCard({ type: "joker", symbol: "🌈", source: "board" }));
+
+  const cards = [...boardNormalCards, ...specials];
+  const positions = generateTemplatePositions(config.template, cards.length * 2, config.layers);
+  const selectedPositions = selectLayeredPositions(positions, cards.length, config.layers);
+
+  cards.forEach((card, index) => {
+    const pos = selectedPositions[index % selectedPositions.length];
+    card.layer = pos.layer;
+    card.x = pos.x;
+    card.y = pos.y;
+    card.rot = pos.rot;
+  });
+
+  return { boardCards: cards, reservePiles };
 }
 
-function renderLevels() {
-  els.levelRow.innerHTML = "";
-  LEVELS.forEach((level, index) => {
+function startLevel(level) {
+  const safeLevel = clamp(level, 1, GameState.unlockedLevel);
+  const config = LEVELS[safeLevel - 1];
+  const built = buildLevel(config);
+  GameState.currentLevel = safeLevel;
+  GameState.slots = [];
+  GameState.maxSlots = BASE_SLOTS;
+  GameState.selectedHistory = [];
+  GameState.boardCards = built.boardCards;
+  GameState.reservePiles = built.reservePiles;
+  GameState.props = { ...config.initialProps };
+  GameState.combo = 1;
+  GameState.status = "playing";
+  GameState.riskMeter = 0;
+  GameState.hintedCardId = null;
+  renderGame();
+  showToast(config.name);
+}
+
+function getCardSymbol(card) {
+  if (card.type === "normal" || card.type === "junk") return card.symbol;
+  if (card.type === "joker") return "🌈";
+  if (card.type === "reward") return "🎁";
+  if (card.type === "trap") return "⚠";
+  return "?";
+}
+
+function snapshotForUndo() {
+  return {
+    slots: clone(GameState.slots),
+    boardCards: clone(GameState.boardCards),
+    reservePiles: clone(GameState.reservePiles),
+    score: GameState.score,
+    coins: GameState.coins,
+    combo: GameState.combo,
+    maxSlots: GameState.maxSlots,
+    props: clone(GameState.props),
+  };
+}
+
+function restoreSnapshot(snapshot) {
+  GameState.slots = clone(snapshot.slots);
+  GameState.boardCards = clone(snapshot.boardCards);
+  GameState.reservePiles = clone(snapshot.reservePiles);
+  GameState.score = snapshot.score;
+  GameState.coins = snapshot.coins;
+  GameState.combo = snapshot.combo;
+  GameState.maxSlots = snapshot.maxSlots;
+  GameState.props = clone(snapshot.props);
+}
+
+function activeSlotCards() {
+  const now = Date.now();
+  return GameState.slots.filter((card) => !card.lockedUntil || card.lockedUntil <= now);
+}
+
+function removeSlotIds(ids) {
+  const idSet = new Set(ids);
+  GameState.slots = GameState.slots.filter((card) => !idSet.has(card.slotId));
+}
+
+function checkSlotMatches() {
+  let removedAny = false;
+  let loopGuard = 0;
+  while (loopGuard < 20) {
+    loopGuard += 1;
+    const active = activeSlotCards();
+    const groups = new Map();
+    active.forEach((card) => {
+      if (card.type !== "normal") return;
+      if (!groups.has(card.symbol)) groups.set(card.symbol, []);
+      groups.get(card.symbol).push(card);
+    });
+
+    const normalMatch = [...groups.entries()].find(([, cards]) => cards.length >= 3);
+    if (normalMatch) {
+      const cards = normalMatch[1].slice(0, 3);
+      removeSlotIds(cards.map((card) => card.slotId));
+      GameState.score += 120 * GameState.combo;
+      GameState.combo += 1;
+      removedAny = true;
+      continue;
+    }
+
+    const jokers = active.filter((card) => card.type === "joker");
+    if (jokers.length) {
+      const jokerTarget = [...groups.entries()]
+        .filter(([, cards]) => cards.length >= 2)
+        .sort((a, b) => b[1].length - a[1].length)[0];
+      if (jokerTarget) {
+        removeSlotIds([...jokerTarget[1].slice(0, 2).map((card) => card.slotId), jokers[0].slotId]);
+        GameState.score += 150 * GameState.combo;
+        GameState.combo += 1;
+        removedAny = true;
+        continue;
+      }
+    }
+
+    break;
+  }
+
+  if (removedAny) {
+    showScorePop(`连消 x${Math.max(1, GameState.combo - 1)}`);
+  } else {
+    GameState.combo = 1;
+  }
+  return removedAny;
+}
+
+function addToSlot(card, options = {}) {
+  if (!card) return false;
+  if (GameState.status !== "playing" && !GameState.testing) return false;
+  if (options.record !== false) {
+    GameState.selectedHistory.push(snapshotForUndo());
+  }
+
+  const slotCard = {
+    id: card.id || nextId("slot"),
+    slotId: nextId("slot"),
+    type: card.type,
+    symbol: card.symbol,
+    source: card.source || options.source || "unknown",
+    lockedUntil: card.lockedUntil || 0,
+  };
+
+  GameState.slots.push(slotCard);
+  checkSlotMatches();
+  checkWinLose();
+  renderGame();
+  return true;
+}
+
+function checkDeadlock() {
+  checkSlotMatches();
+  if (GameState.slots.length < GameState.maxSlots) return false;
+  if (GameState.slots.length > GameState.maxSlots) return true;
+  if (hasImmediateRescue()) return false;
+  return true;
+}
+
+function hasImmediateRescue() {
+  const clickable = GameState.boardCards.filter((card) => !card.isRemoved && card.isClickable);
+  if (clickable.some((card) => card.type === "reward" || card.type === "mystery")) return true;
+  if (GameState.reservePiles.some((pile) => pile.length > 0)) return true;
+  return GameState.props.hint > 0 || GameState.props.undo > 0 || GameState.props.shuffle > 0 || GameState.props.expand > 0;
+}
+
+function checkWinLose() {
+  if (isLevelWon()) {
+    winLevel();
+    return;
+  }
+  if (checkDeadlock()) {
+    failLevel();
+  }
+}
+
+function isLevelWon() {
+  const boardHasNormal = GameState.boardCards.some((card) => !card.isRemoved && (card.type === "normal" || card.type === "joker"));
+  const reserveHasNormal = GameState.reservePiles.some((pile) => pile.some((card) => card.type === "normal" || card.type === "joker"));
+  const slotHasNormal = GameState.slots.some((card) => card.type === "normal" || card.type === "joker");
+  return !boardHasNormal && !reserveHasNormal && !slotHasNormal;
+}
+
+function winLevel() {
+  if (GameState.status === "won") return;
+  GameState.status = "won";
+  GameState.coins += 25 + GameState.currentLevel * 5;
+  if (GameState.currentLevel === GameState.unlockedLevel && GameState.unlockedLevel < LEVELS.length) {
+    GameState.unlockedLevel += 1;
+  }
+  saveProgress();
+  renderGame();
+  showDialog("通关成功", GameState.currentLevel < LEVELS.length ? "下一关已经解锁，继续拆牌。" : "全部关卡都清完了，花园很安静。", GameState.currentLevel < LEVELS.length ? "下一关" : "再玩一次");
+}
+
+function failLevel() {
+  if (GameState.status === "failed") return;
+  GameState.status = "failed";
+  GameState.lives = Math.max(0, GameState.lives - 1);
+  saveProgress();
+  renderGame();
+  showDialog("卡槽满了", GameState.lives > 0 ? "换个顺序就有机会翻盘，重试本关。" : "生命为 0 也可以重置进度继续测试。", "重试");
+}
+
+function cardRect(card, boardRect) {
+  const size = getCardSize();
+  const x = card.x * (boardRect.width - size);
+  const y = card.y * (boardRect.height - size);
+  return { x, y, width: size, height: size };
+}
+
+function overlapArea(a, b) {
+  const x = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+  const y = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+  return x * y;
+}
+
+function getCardSize() {
+  if (!els.board || !window.getComputedStyle) return 54;
+  const value = getComputedStyle(document.documentElement).getPropertyValue("--card-size");
+  return parseFloat(value) || 54;
+}
+
+function updateClickability() {
+  const boardRect = els.board?.getBoundingClientRect?.() || { width: 360, height: 360 };
+  GameState.boardCards.forEach((card) => {
+    card.blockedBy = [];
+    card.isClickable = false;
+    if (card.isRemoved) return;
+    const ownRect = cardRect(card, boardRect);
+    const ownArea = ownRect.width * ownRect.height;
+    GameState.boardCards.forEach((other) => {
+      if (other.isRemoved || other.layer <= card.layer || other.id === card.id) return;
+      const area = overlapArea(ownRect, cardRect(other, boardRect));
+      if (area / ownArea > 0.1) {
+        card.blockedBy.push(other.id);
+      }
+    });
+    card.isClickable = card.blockedBy.length === 0;
+  });
+}
+
+function clickBoardCard(cardId) {
+  const card = GameState.boardCards.find((item) => item.id === cardId);
+  if (!card || card.isRemoved || GameState.status !== "playing") return;
+  updateClickability();
+  if (!card.isClickable) {
+    shakeCard(card.id);
+    showToast("这张还被压住");
+    return;
+  }
+
+  const undoSnapshot = snapshotForUndo();
+  if (card.type === "reward") {
+    card.isRemoved = true;
+    applyReward();
+    checkWinLose();
+    renderGame();
+    return;
+  }
+
+  if (card.type === "trap") {
+    card.isRemoved = true;
+    applyTrapPenalty();
+    checkWinLose();
+    renderGame();
+    return;
+  }
+
+  if (card.type === "mystery") {
+    card.isRemoved = true;
+    processMysteryCard(card, undefined, undoSnapshot);
+    return;
+  }
+
+  card.isRemoved = true;
+  GameState.selectedHistory.push(undoSnapshot);
+  addToSlot({ ...card, source: "board" }, { record: false });
+}
+
+function clickReservePile(index) {
+  const pile = GameState.reservePiles[index];
+  if (!pile || !pile.length || GameState.status !== "playing") return;
+  const undoSnapshot = snapshotForUndo();
+  const card = pile.shift();
+  GameState.selectedHistory.push(undoSnapshot);
+  addToSlot({ ...card, source: "reserve" }, { record: false });
+}
+
+function processMysteryCard(card, forcedType, undoSnapshot = null) {
+  const roll = forcedType || (Math.random() < 0.68 ? "normal" : Math.random() < 0.78 ? "reward" : Math.random() < 0.92 ? "trap" : "joker");
+  if (roll === "reward") {
+    applyReward();
+    checkWinLose();
+    renderGame();
+    return;
+  }
+  if (roll === "trap") {
+    applyTrapPenalty();
+    checkWinLose();
+    renderGame();
+    return;
+  }
+  if (roll === "joker") {
+    if (undoSnapshot) GameState.selectedHistory.push(undoSnapshot);
+    addToSlot({ ...card, type: "joker", symbol: "🌈", source: "mystery" }, { record: !undoSnapshot });
+    return;
+  }
+  const symbol = chooseMysterySymbol();
+  if (undoSnapshot) GameState.selectedHistory.push(undoSnapshot);
+  addToSlot({ ...card, type: "normal", symbol, source: "mystery" }, { record: !undoSnapshot });
+}
+
+function chooseMysterySymbol() {
+  const slotPairs = new Map();
+  GameState.slots.forEach((card) => {
+    if (card.type === "normal") slotPairs.set(card.symbol, (slotPairs.get(card.symbol) || 0) + 1);
+  });
+  const pair = [...slotPairs.entries()].find(([, count]) => count === 2);
+  if (pair) return pair[0];
+  const visible = GameState.boardCards.find((card) => !card.isRemoved && card.type === "normal" && card.isClickable);
+  return visible?.symbol || SYMBOLS[Math.floor(Math.random() * Math.min(7, SYMBOLS.length))];
+}
+
+function applyReward() {
+  const rewards = ["hint", "undo", "shuffle", "coins"];
+  const reward = rewards[Math.floor(Math.random() * rewards.length)];
+  if (reward === "coins") {
+    GameState.coins += 20;
+    showToast("金币 +20");
+  } else {
+    GameState.props[reward] += 1;
+    showToast(`${propName(reward)} +1`);
+  }
+  showScorePop("奖励");
+  saveProgress();
+}
+
+function propName(prop) {
+  return { hint: "提示", undo: "撤回", shuffle: "洗牌", expand: "加格" }[prop] || prop;
+}
+
+function applyTrapPenalty(forced) {
+  const options = forced ? [forced] : ["lock", "junk", "prop", "flip"];
+  const pick = options[Math.floor(Math.random() * options.length)];
+  if (pick === "lock" && GameState.slots.length) {
+    const target = GameState.slots[Math.floor(Math.random() * GameState.slots.length)];
+    target.lockedUntil = Date.now() + 5000;
+    setTimeout(() => {
+      checkSlotMatches();
+      checkWinLose();
+      renderGame();
+    }, 5050);
+    showToast("一张槽牌被锁住");
+    return;
+  }
+
+  if (pick === "junk") {
+    const symbol = SYMBOLS[Math.floor(Math.random() * 4)];
+    addToSlot({ type: "junk", symbol, source: "trap" }, { record: false });
+    showToast("混入一张杂草牌");
+    return;
+  }
+
+  if (pick === "prop") {
+    const prop = ["hint", "undo", "shuffle"].sort((a, b) => GameState.props[b] - GameState.props[a])[0];
+    if (GameState.props[prop] > 0) GameState.props[prop] -= 1;
+    showToast("道具被藤蔓缠住");
+    return;
+  }
+
+  const candidates = GameState.boardCards.filter((card) => !card.isRemoved && card.isClickable && card.type === "normal").slice(0, 3);
+  candidates.forEach((card) => {
+    card.faceDownUntil = Date.now() + 3000;
+  });
+  setTimeout(renderGame, 3050);
+  showToast("几张牌短暂翻面");
+}
+
+function useHint() {
+  if (GameState.props.hint <= 0 || GameState.status !== "playing") return;
+  GameState.props.hint -= 1;
+  const card = findBestHint();
+  GameState.hintedCardId = card?.id || null;
+  showToast(card ? "提示已标出" : "先从边缘拆开");
+  renderGame();
+}
+
+function findBestHint() {
+  updateClickability();
+  const clickable = GameState.boardCards.filter((card) => !card.isRemoved && card.isClickable);
+  const slotCounts = new Map();
+  GameState.slots.forEach((slot) => {
+    if (slot.type === "normal") slotCounts.set(slot.symbol, (slotCounts.get(slot.symbol) || 0) + 1);
+  });
+  return clickable
+    .filter((card) => card.type === "normal" || card.type === "joker" || card.type === "reward" || card.type === "mystery")
+    .sort((a, b) => {
+      const aImmediate = a.type === "normal" && (slotCounts.get(a.symbol) || 0) >= 2 ? 100 : 0;
+      const bImmediate = b.type === "normal" && (slotCounts.get(b.symbol) || 0) >= 2 ? 100 : 0;
+      const aUnlock = GameState.boardCards.filter((card) => !card.isRemoved && card.blockedBy.includes(a.id)).length;
+      const bUnlock = GameState.boardCards.filter((card) => !card.isRemoved && card.blockedBy.includes(b.id)).length;
+      return bImmediate + bUnlock + b.layer - (aImmediate + aUnlock + a.layer);
+    })[0];
+}
+
+function useUndo() {
+  if (GameState.props.undo <= 0 || !GameState.selectedHistory.length || GameState.status !== "playing") return;
+  const snapshot = GameState.selectedHistory.pop();
+  restoreSnapshot(snapshot);
+  GameState.props.undo = Math.max(0, GameState.props.undo - 1);
+  checkSlotMatches();
+  checkWinLose();
+  renderGame();
+  showToast("撤回一步");
+}
+
+function useShuffle() {
+  if (GameState.props.shuffle <= 0 || GameState.status !== "playing") return;
+  GameState.props.shuffle -= 1;
+  const activeNormal = GameState.boardCards.filter((card) => !card.isRemoved && card.type === "normal");
+  const symbols = shuffle(activeNormal.map((card) => card.symbol));
+  activeNormal.forEach((card, index) => {
+    card.symbol = symbols[index];
+  });
+  renderGame();
+  showToast("牌面重新洗过");
+}
+
+function useExpand() {
+  if (GameState.props.expand <= 0 || GameState.status !== "playing" || GameState.maxSlots >= EXPANDED_SLOTS) return;
+  GameState.props.expand -= 1;
+  GameState.maxSlots = EXPANDED_SLOTS;
+  renderGame();
+  showToast("本关卡槽 +3");
+}
+
+function countRemainingNormals() {
+  const board = GameState.boardCards.filter((card) => !card.isRemoved && card.type === "normal").length;
+  const reserve = GameState.reservePiles.reduce((sum, pile) => sum + pile.filter((card) => card.type === "normal").length, 0);
+  const slots = GameState.slots.filter((card) => card.type === "normal").length;
+  return board + reserve + slots;
+}
+
+function renderGame() {
+  if (!els.board) return;
+  updateClickability();
+  renderStatus();
+  renderLevelStrip();
+  renderBoard();
+  renderReserve();
+  renderSlots();
+  renderTools();
+}
+
+function renderStatus() {
+  const remaining = countRemainingNormals();
+  const config = LEVELS[GameState.currentLevel - 1];
+  const total = config.normalGroups * 3;
+  const progress = clamp(((total - remaining) / Math.max(1, total)) * 100, 0, 100);
+  els.livesText.textContent = String(GameState.lives);
+  els.levelTitle.textContent = `第 ${GameState.currentLevel} 关`;
+  els.coinText.textContent = String(GameState.coins + GameState.score);
+  els.progressFill.style.width = `${progress}%`;
+  els.starRow.innerHTML = "";
+  for (let i = 0; i < 3; i += 1) {
+    const star = document.createElement("span");
+    star.textContent = "★";
+    if (progress >= (i + 1) * 31) star.className = "on";
+    els.starRow.append(star);
+  }
+  els.slotCountText.textContent = `卡槽 ${GameState.slots.length} / ${GameState.maxSlots}`;
+  els.riskText.textContent = GameState.slots.length >= 6 ? "危险边缘" : GameState.slots.length >= 4 ? "开始有压力" : "稳住节奏";
+}
+
+function renderLevelStrip() {
+  els.levelStrip.innerHTML = "";
+  LEVELS.forEach((level) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = `${index + 1}. ${level.name}`;
-    btn.className = index === state.levelIndex ? "active" : "";
-    btn.addEventListener("click", () => resetLevel(index));
-    els.levelRow.append(btn);
+    btn.className = `level-chip${level.level === GameState.currentLevel ? " active" : ""}${level.level > GameState.unlockedLevel ? " locked" : ""}`;
+    btn.textContent = level.level > GameState.unlockedLevel ? "锁" : String(level.level);
+    btn.addEventListener("click", () => {
+      if (level.level <= GameState.unlockedLevel) startLevel(level.level);
+    });
+    els.levelStrip.append(btn);
   });
 }
 
 function renderBoard() {
-  getTileSize();
-  const fragment = document.createDocumentFragment();
+  const frag = document.createDocumentFragment();
   const boardRect = els.board.getBoundingClientRect();
-  const maxX = Math.max(1, boardRect.width - state.tileRect.w);
-  const maxY = Math.max(1, boardRect.height - state.tileRect.h);
+  const size = getCardSize();
+  GameState.boardCards
+    .filter((card) => !card.isRemoved)
+    .sort((a, b) => a.layer - b.layer)
+    .forEach((card) => {
+      const el = document.createElement("button");
+      const rect = cardRect(card, boardRect);
+      el.type = "button";
+      el.className = `card ${card.type} ${card.isClickable ? "clickable" : "blocked"}${card.id === GameState.hintedCardId ? " hint" : ""}${card.faceDownUntil > Date.now() ? " face-down" : ""}`;
+      el.textContent = getCardSymbol(card);
+      el.dataset.id = card.id;
+      el.style.setProperty("--x", `${rect.x}px`);
+      el.style.setProperty("--y", `${rect.y}px`);
+      el.style.setProperty("--rot", `${card.rot || 0}deg`);
+      el.style.zIndex = String(10 + card.layer);
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.addEventListener("click", () => clickBoardCard(card.id));
+      frag.append(el);
+    });
+  els.board.replaceChildren(frag);
+}
 
-  state.tiles.forEach((tile) => {
-    if (tile.removed) return;
+function renderReserve() {
+  els.reservePiles.innerHTML = "";
+  GameState.reservePiles.forEach((pile, index) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "tile";
-    btn.textContent = tile.icon;
-    btn.dataset.id = tile.id;
-    btn.style.setProperty("--x", `${tile.x * maxX}px`);
-    btn.style.setProperty("--y", `${tile.y * maxY}px`);
-    btn.style.setProperty("--rot", `${tile.rot}deg`);
-    btn.style.zIndex = String(10 + tile.layer);
-    if (!isUnlocked(tile)) {
-      btn.classList.add("locked");
-      btn.setAttribute("aria-disabled", "true");
+    btn.className = "reserve-pile";
+    const top = pile[0];
+    if (top) {
+      const card = document.createElement("span");
+      card.className = "reserve-card";
+      card.textContent = getCardSymbol(top);
+      btn.append(card);
+    } else {
+      const empty = document.createElement("span");
+      empty.className = "reserve-empty";
+      empty.textContent = "空";
+      btn.append(empty);
     }
-    btn.addEventListener("click", () => pickTile(tile.id));
-    fragment.append(btn);
+    const count = document.createElement("span");
+    count.className = "pile-count";
+    count.textContent = String(pile.length);
+    btn.append(count);
+    btn.disabled = !pile.length || GameState.status !== "playing";
+    btn.addEventListener("click", () => clickReservePile(index));
+    els.reservePiles.append(btn);
   });
-
-  els.board.replaceChildren(fragment);
 }
 
-function renderTray(flashIcons = []) {
-  const fragment = document.createDocumentFragment();
-  state.tray.forEach((item) => {
-    const cell = document.createElement("div");
-    cell.className = "tray-item";
-    if (flashIcons.includes(item.icon)) cell.classList.add("flash");
-    cell.textContent = item.icon;
-    fragment.append(cell);
-  });
-  for (let i = state.tray.length; i < LEVELS[state.levelIndex].capacity; i += 1) {
-    const cell = document.createElement("div");
-    cell.className = "tray-item";
-    cell.textContent = "";
-    fragment.append(cell);
-  }
-  els.tray.replaceChildren(fragment);
-}
-
-function renderStats() {
-  const level = LEVELS[state.levelIndex];
-  const left = state.tiles.filter((tile) => !tile.removed).length;
-  els.score.textContent = state.score.toLocaleString("zh-CN");
-  els.combo.textContent = `x${state.combo}`;
-  els.leftCount.textContent = String(left);
-  els.trayCounter.textContent = `${state.tray.length} / ${level.capacity}`;
-  els.levelTag.textContent = `第 ${state.levelIndex + 1} 关 · ${level.name}`;
-  els.levelDesc.textContent = level.desc;
-  els.hintLeft.textContent = state.tools.hint;
-  els.undoLeft.textContent = state.tools.undo;
-  els.shuffleLeft.textContent = state.tools.shuffle;
-  els.scoopLeft.textContent = state.tools.scoop;
-  els.hintTool.disabled = state.tools.hint <= 0 || state.over;
-  els.undoTool.disabled = state.tools.undo <= 0 || !state.history.length || state.over;
-  els.shuffleTool.disabled = state.tools.shuffle <= 0 || state.over;
-  els.scoopTool.disabled = state.tools.scoop <= 0 || state.tray.length === 0 || state.over;
-  els.difficultyMeter.innerHTML = "";
-  for (let i = 0; i < 5; i += 1) {
-    const dot = document.createElement("i");
-    if (i <= state.levelIndex) dot.className = "on";
-    els.difficultyMeter.append(dot);
-  }
-}
-
-function renderAll(flashIcons = []) {
-  renderLevels();
-  renderStats();
-  renderBoard();
-  renderTray(flashIcons);
-}
-
-function groupTray() {
-  return state.tray.reduce((map, item) => {
-    if (!map.has(item.icon)) map.set(item.icon, []);
-    map.get(item.icon).push(item);
-    return map;
-  }, new Map());
-}
-
-function removeMatches() {
-  const groups = groupTray();
-  const matched = [];
-  groups.forEach((items, icon) => {
-    while (items.length >= 3) {
-      matched.push(icon);
-      const ids = new Set(items.splice(0, 3).map((item) => item.pickId));
-      state.tray = state.tray.filter((item) => !ids.has(item.pickId));
-      state.score += 120 * state.combo + state.levelIndex * 35;
-      state.combo += 1;
+function renderSlots() {
+  els.slots.innerHTML = "";
+  for (let i = 0; i < EXPANDED_SLOTS; i += 1) {
+    const slot = document.createElement("div");
+    slot.className = `slot${i >= GameState.maxSlots ? " hidden" : ""}${i >= 5 && i < BASE_SLOTS ? " warn" : ""}`;
+    const card = GameState.slots[i];
+    if (card) {
+      slot.textContent = getCardSymbol(card);
+      if (card.lockedUntil && card.lockedUntil > Date.now()) slot.classList.add("locked");
     }
-  });
-  if (matched.length) {
-    audio.blip(980 + matched.length * 120, 0.08, "square", 0.06);
-    showToast(matched.length > 1 ? "双响！鹅槽瞬间清爽" : `消掉 ${matched[0]}，手感上来了`);
+    els.slots.append(slot);
   }
-  return matched;
 }
 
-function pickTile(id) {
-  if (state.over) return;
-  const tile = state.tiles.find((item) => item.id === id);
-  if (!tile || tile.removed) return;
-  if (!isUnlocked(tile)) {
-    audio.blip(130, 0.05, "sawtooth", 0.04);
-    showToast("这张还被压着，先拆上面那层");
-    return;
-  }
-
-  const pickId = `${tile.id}-${performance.now()}`;
-  state.history.push({
-    tileId: tile.id,
-    trayBefore: state.tray.map((item) => ({ ...item })),
-    score: state.score,
-    combo: state.combo,
-  });
-  tile.removed = true;
-  state.tray.push({ icon: tile.icon, pickId });
-  state.score += 10 + state.levelIndex * 3;
-  audio.blip(520 + state.combo * 18, 0.04, "square", 0.035);
-
-  const matched = removeMatches();
-  if (!matched.length) {
-    state.combo = Math.max(1, state.combo - 1);
-  }
-
-  const level = LEVELS[state.levelIndex];
-  if (state.tray.length > level.capacity) {
-    failGame();
-    return;
-  }
-
-  const left = state.tiles.filter((item) => !item.removed).length;
-  if (left === 0) {
-    winLevel();
-    return;
-  }
-
-  renderAll(matched);
-}
-
-function failGame() {
-  state.over = true;
-  renderAll();
-  audio.blip(88, 0.35, "sawtooth", 0.05);
-  els.modalTitle.textContent = "鹅槽爆了";
-  els.modalText.textContent = "这一把被物品淹没了。重开会保留关卡，不会登录，也不会有广告来烦你。";
-  els.startBtn.textContent = "重开本关";
-  els.guideDialog.showModal();
-}
-
-function winLevel() {
-  state.over = true;
-  state.score += 500 + state.levelIndex * 260 + state.combo * 80;
-  renderAll();
-  audio.blip(1260, 0.18, "triangle", 0.08);
-  const next = state.levelIndex + 1;
-  if (next < LEVELS.length) {
-    els.modalTitle.textContent = "清场成功";
-    els.modalText.textContent = `这一关被你盘明白了。下一关是「${LEVELS[next].name}」，东西更多，鹅槽更紧。`;
-    els.startBtn.textContent = "下一关";
-  } else {
-    els.modalTitle.textContent = "鹅王下班";
-    els.modalText.textContent = `五关全通，最终分数 ${state.score.toLocaleString("zh-CN")}。这个链接可以继续分享挑战。`;
-    els.startBtn.textContent = "再疯一轮";
-  }
-  els.guideDialog.showModal();
+function renderTools() {
+  els.hintCount.textContent = String(GameState.props.hint);
+  els.undoCount.textContent = String(GameState.props.undo);
+  els.shuffleCount.textContent = String(GameState.props.shuffle);
+  els.expandCount.textContent = String(GameState.props.expand);
+  els.hintBtn.disabled = GameState.props.hint <= 0 || GameState.status !== "playing";
+  els.undoBtn.disabled = GameState.props.undo <= 0 || !GameState.selectedHistory.length || GameState.status !== "playing";
+  els.shuffleBtn.disabled = GameState.props.shuffle <= 0 || GameState.status !== "playing";
+  els.expandBtn.disabled = GameState.props.expand <= 0 || GameState.maxSlots >= EXPANDED_SLOTS || GameState.status !== "playing";
 }
 
 function showToast(text) {
-  els.toast.textContent = text;
-  els.toast.classList.add("show");
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 1500);
+  if (GameState.testing || !els.floatLayer) return;
+  clearTimeout(toastTimer);
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = text;
+  els.floatLayer.append(toast);
+  toastTimer = setTimeout(() => toast.remove(), 620);
 }
 
-function useHint() {
-  if (state.tools.hint <= 0 || state.over) return;
-  state.tools.hint -= 1;
-  const choice = bestHintTile();
-  renderAll();
-  if (!choice) {
-    showToast("暂时没有特别漂亮的一手，先拆最高层");
+function showScorePop(text) {
+  if (GameState.testing || !els.floatLayer) return;
+  const pop = document.createElement("div");
+  pop.className = "score-pop";
+  pop.textContent = text;
+  pop.style.left = "50%";
+  pop.style.top = "52%";
+  els.floatLayer.append(pop);
+  setTimeout(() => pop.remove(), 540);
+}
+
+function shakeCard(cardId) {
+  const el = els.board?.querySelector(`[data-id="${cardId}"]`);
+  if (!el) return;
+  el.classList.remove("shake");
+  void el.offsetWidth;
+  el.classList.add("shake");
+}
+
+function showDialog(title, text, primary) {
+  if (GameState.testing) return;
+  els.dialogTitle.textContent = title;
+  els.dialogText.textContent = text;
+  els.dialogPrimaryBtn.textContent = primary;
+  if (!els.dialog.open) els.dialog.showModal();
+}
+
+function handleDialogPrimary() {
+  if (!GameState.started) {
+    GameState.started = true;
+    if (els.dialog.open) els.dialog.close();
+    startLevel(GameState.currentLevel);
     return;
   }
-  const el = els.board.querySelector(`[data-id="${choice.id}"]`);
-  if (el) el.classList.add("hint");
-  showToast(`先点 ${choice.icon}，鹅觉得这手不亏`);
-}
-
-function bestHintTile() {
-  const available = availableTiles();
-  if (!available.length) return null;
-  const trayCounts = state.tray.reduce((map, item) => {
-    map.set(item.icon, (map.get(item.icon) || 0) + 1);
-    return map;
-  }, new Map());
-  const availableCounts = available.reduce((map, tile) => {
-    map.set(tile.icon, (map.get(tile.icon) || 0) + 1);
-    return map;
-  }, new Map());
-  return [...available].sort((a, b) => {
-    const aScore = (trayCounts.get(a.icon) || 0) * 6 + (availableCounts.get(a.icon) || 0) * 2 + a.layer;
-    const bScore = (trayCounts.get(b.icon) || 0) * 6 + (availableCounts.get(b.icon) || 0) * 2 + b.layer;
-    return bScore - aScore;
-  })[0];
-}
-
-function useUndo() {
-  if (state.tools.undo <= 0 || !state.history.length || state.over) return;
-  const last = state.history.pop();
-  const tile = state.tiles.find((item) => item.id === last.tileId);
-  if (tile) tile.removed = false;
-  state.tray = last.trayBefore;
-  state.score = last.score;
-  state.combo = last.combo;
-  state.tools.undo -= 1;
-  audio.blip(360, 0.09, "triangle", 0.04);
-  renderAll();
-  showToast("撤回成功，鹅槽喘了一口气");
-}
-
-function useShuffle() {
-  if (state.tools.shuffle <= 0 || state.over) return;
-  state.tools.shuffle -= 1;
-  const random = mulberry32(Date.now() + state.tiles.length);
-  const active = state.tiles.filter((tile) => !tile.removed);
-  const positions = active.map((tile) => ({ x: tile.x, y: tile.y, rot: tile.rot, layer: tile.layer }));
-  shuffle(positions, random);
-  active.forEach((tile, index) => {
-    tile.x = clamp(positions[index].x + (random() - 0.5) * 0.035, 0.01, 0.95);
-    tile.y = clamp(positions[index].y + (random() - 0.5) * 0.035, 0.01, 0.93);
-    tile.rot = (random() - 0.5) * 12;
-  });
-  audio.blip(700, 0.08, "sawtooth", 0.04);
-  renderAll();
-  showToast("洗牌完成，桌面重新开搅");
-}
-
-function useScoop() {
-  if (state.tools.scoop <= 0 || !state.tray.length || state.over) return;
-  const groups = [...groupTray().entries()].sort((a, b) => b[1].length - a[1].length);
-  const [icon, items] = groups[0];
-  const ids = new Set(items.map((item) => item.pickId));
-  state.tray = state.tray.filter((item) => !ids.has(item.pickId));
-  state.tools.scoop -= 1;
-  state.history = [];
-  state.combo = Math.max(1, state.combo - 1);
-  audio.blip(860, 0.12, "triangle", 0.05);
-  renderAll([icon]);
-  showToast(`捞走 ${items.length} 个 ${icon}，继续冲`);
-}
-
-function copyShareLink() {
-  const url = new URL(window.location.href);
-  url.searchParams.set("level", String(state.levelIndex + 1));
-  navigator.clipboard
-    .writeText(url.toString())
-    .then(() => showToast("挑战链接已复制"))
-    .catch(() => showToast("浏览器没给剪贴板权限，可以直接复制地址栏"));
-}
-
-function openGuide() {
-  els.modalTitle.textContent = "新手指导";
-  els.modalText.textContent =
-    "点开没有被压住的物品，三个相同会自动消除。鹅槽满了就失败。道具每关限量，越晚用越值。";
-  els.startBtn.textContent = state.started ? "继续玩" : "开疯";
-  els.guideDialog.showModal();
-}
-
-function handleStart() {
-  const isWin = state.over && state.tiles.every((tile) => tile.removed);
-  if (!state.started) {
-    state.started = true;
-  } else if (state.over && isWin) {
-    const next = state.levelIndex + 1 < LEVELS.length ? state.levelIndex + 1 : 0;
-    resetLevel(next);
-  } else if (state.over) {
-    resetLevel(state.levelIndex);
+  if (els.dialog.open) els.dialog.close();
+  if (GameState.status === "won") {
+    const next = GameState.currentLevel < LEVELS.length ? GameState.currentLevel + 1 : 1;
+    startLevel(Math.min(next, GameState.unlockedLevel));
+    return;
   }
-  audio.start();
-  els.guideDialog.close();
+  startLevel(GameState.currentLevel);
+}
+
+function openSettings() {
+  showDialog("游戏设置", "纯静态网页，无登录、无广告、无外部接口。可以重置进度重新测试关卡。", "继续游戏");
 }
 
 function bindEvents() {
-  els.startBtn.addEventListener("click", handleStart);
-  els.shareBtn.addEventListener("click", copyShareLink);
-  els.helpBtn.addEventListener("click", openGuide);
-  els.restartBtn.addEventListener("click", () => resetLevel(state.levelIndex));
-  els.soundBtn.addEventListener("click", () => audio.toggle());
-  els.hintTool.addEventListener("click", useHint);
-  els.undoTool.addEventListener("click", useUndo);
-  els.shuffleTool.addEventListener("click", useShuffle);
-  els.scoopTool.addEventListener("click", useScoop);
-  window.addEventListener("resize", () => renderBoard());
+  els.hintBtn.addEventListener("click", useHint);
+  els.undoBtn.addEventListener("click", useUndo);
+  els.shuffleBtn.addEventListener("click", useShuffle);
+  els.expandBtn.addEventListener("click", useExpand);
+  els.settingsBtn.addEventListener("click", openSettings);
+  els.dialogPrimaryBtn.addEventListener("click", handleDialogPrimary);
+  els.resetProgressBtn.addEventListener("click", resetProgress);
+  window.addEventListener("resize", renderGame);
 }
 
-function initFromUrl() {
-  const levelParam = Number(new URLSearchParams(window.location.search).get("level"));
-  if (Number.isFinite(levelParam) && levelParam >= 1 && levelParam <= LEVELS.length) {
-    state.levelIndex = levelParam - 1;
+function runGameLogicTests() {
+  const backup = clone({
+    currentLevel: GameState.currentLevel,
+    unlockedLevel: GameState.unlockedLevel,
+    score: GameState.score,
+    lives: GameState.lives,
+    coins: GameState.coins,
+    slots: GameState.slots,
+    maxSlots: GameState.maxSlots,
+    selectedHistory: GameState.selectedHistory,
+    boardCards: GameState.boardCards,
+    reservePiles: GameState.reservePiles,
+    props: GameState.props,
+    combo: GameState.combo,
+    status: GameState.status,
+  });
+  const errors = [];
+  GameState.testing = true;
+
+  function resetTest() {
+    GameState.status = "playing";
+    GameState.slots = [];
+    GameState.maxSlots = BASE_SLOTS;
+    GameState.selectedHistory = [];
+    GameState.boardCards = [];
+    GameState.reservePiles = [[], [], []];
+    GameState.props = { hint: 2, undo: 2, shuffle: 1, expand: 1 };
+    GameState.combo = 1;
   }
+
+  function assert(name, condition) {
+    if (!condition) errors.push(name);
+  }
+
+  resetTest();
+  addToSlot({ type: "normal", symbol: "A" }, { record: false });
+  addToSlot({ type: "normal", symbol: "A" }, { record: false });
+  addToSlot({ type: "normal", symbol: "A" }, { record: false });
+  assert("连续三张相同应消除", GameState.slots.length === 0);
+
+  resetTest();
+  ["A", "B", "A", "C", "A"].forEach((symbol) => addToSlot({ type: "normal", symbol }, { record: false }));
+  assert("不相邻三张相同应消除", GameState.slots.map((card) => card.symbol).join("") === "BC");
+
+  resetTest();
+  ["A", "B", "A", "B", "A", "B"].forEach((symbol) => addToSlot({ type: "normal", symbol }, { record: false }));
+  assert("两组三消应全部消除", GameState.slots.length === 0);
+
+  resetTest();
+  ["B", "C", "D", "E", "F", "A", "A"].forEach((symbol) => addToSlot({ type: "normal", symbol }, { record: false }));
+  addToSlot({ type: "normal", symbol: "A" }, { record: false });
+  assert("第 7 格形成三消不能失败", GameState.status !== "failed" && GameState.slots.length === 5);
+
+  resetTest();
+  GameState.slots = [
+    { slotId: "s1", type: "normal", symbol: "Q" },
+    { slotId: "s2", type: "normal", symbol: "Q" },
+  ];
+  GameState.reservePiles = [[{ id: "r1", type: "normal", symbol: "Q" }], [], []];
+  clickReservePile(0);
+  assert("备用牌堆取牌应触发三消", GameState.slots.length === 0 && GameState.reservePiles[0].length === 0);
+
+  resetTest();
+  GameState.slots = [
+    { slotId: "s1", type: "normal", symbol: "M" },
+    { slotId: "s2", type: "normal", symbol: "M" },
+  ];
+  processMysteryCard({ id: "m1", type: "mystery", symbol: "?" }, "normal");
+  assert("未知牌翻成普通牌应参与三消", GameState.slots.length === 0);
+
+  resetTest();
+  applyTrapPenalty("junk");
+  assert("陷阱塞牌不应破坏 slots", GameState.slots.length === 1 && GameState.slots[0].type === "junk");
+
+  resetTest();
+  addToSlot({ type: "reward", symbol: "🎁" }, { record: false });
+  addToSlot({ type: "trap", symbol: "⚠" }, { record: false });
+  addToSlot({ type: "mystery", symbol: "?" }, { record: false });
+  assert("特殊牌不应触发普通三消", GameState.slots.length === 3);
+
+  resetTest();
+  GameState.boardCards = [makeCard({ type: "normal", symbol: "U", source: "board" })];
+  const undoSnapshot = snapshotForUndo();
+  GameState.boardCards[0].isRemoved = true;
+  GameState.selectedHistory.push(undoSnapshot);
+  addToSlot({ ...GameState.boardCards[0], type: "normal", symbol: "U" }, { record: false });
+  const beforeUndoDomSlots = GameState.slots.length;
+  useUndo();
+  assert("撤回后 slots 和状态应恢复", beforeUndoDomSlots === 1 && GameState.slots.length === 0 && GameState.boardCards[0].isRemoved === false);
+
+  resetTest();
+  GameState.boardCards = [];
+  GameState.reservePiles = [[{ id: "rv", type: "normal", symbol: "Z" }], [], []];
+  GameState.slots = [];
+  assert("通关判断不能漏掉备用牌普通牌", isLevelWon() === false);
+
+  Object.assign(GameState, backup);
+  GameState.testing = false;
+  renderGame();
+
+  if (errors.length) {
+    console.error(`Game logic tests failed: ${errors.join("; ")}`);
+    return false;
+  }
+  console.log("Game logic tests passed");
+  return true;
 }
+
+window.runGameLogicTests = runGameLogicTests;
+globalThis.runGameLogicTests = runGameLogicTests;
 
 function init() {
+  loadProgress();
   bindEvents();
-  initFromUrl();
-  resetLevel(state.levelIndex);
-  els.guideDialog.showModal();
+  GameState.currentLevel = 1;
+  GameState.status = "ready";
+  startLevel(1);
+  GameState.status = "ready";
+  renderGame();
+  showDialog("花园叠叠消", "点开没有被压住的牌，任意三张相同会自动消除。第 1 关会先给你几组爽消。", "开始");
+  if (new URLSearchParams(window.location.search).get("test") === "1") {
+    setTimeout(runGameLogicTests, 80);
+  }
 }
 
 init();
