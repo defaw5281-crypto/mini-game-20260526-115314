@@ -717,8 +717,8 @@ function isCardBlocked(card, boardRect = els.board?.getBoundingClientRect?.() ||
     const dx = Math.abs((other.x || 0) - (card.x || 0));
     const dy = Math.abs((other.y || 0) - (card.y || 0));
 
-    const rectBlocked = area > ownRect.width * ownRect.height * 0.08;
-    const nearBlocked = dx < 0.13 && dy < 0.11;
+    const rectBlocked = area > ownRect.width * ownRect.height * 0.03;
+const nearBlocked = dx < 0.16 && dy < 0.14;
 
     if (rectBlocked || nearBlocked) {
       blockers.push(other.id);
