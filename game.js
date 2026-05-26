@@ -284,10 +284,10 @@ function generateTemplatePositions(template, count, layers) {
       .filter(([cx, cy]) => Math.abs(cx) + Math.abs(cy) <= 5 * keepRatio)
       .slice(0, Math.max(5, base.length - layer * 4));
 
-    const stepX = 0.082;
-    const stepY = 0.072;
-    const layerOffsetX = layer * 0.012;
-    const layerOffsetY = -layer * 0.012;
+    const stepX = 0.105;
+const stepY = 0.088;
+const layerOffsetX = layer * 0.004;
+const layerOffsetY = -layer * 0.006;
 
     layerCells.forEach(([cx, cy]) => {
       if (positions.length >= count) return;
