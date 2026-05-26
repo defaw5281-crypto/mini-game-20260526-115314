@@ -236,176 +236,91 @@ function makeCard({ type = "normal", symbol = "", layer = 0, x = 0.5, y = 0.5, s
 
 function generateTemplatePositions(template, count, layers) {
   const positions = [];
-  const pushGrid = (layer, cells, scaleX = 0.112, scaleY = 0.092) => {
-    const layerOffset = layer * 0.018;
-    cells.forEach(([cx, cy]) => {
-      positions.push({
-        layer,
-        x: 0.5 + cx * scaleX + layerOffset,
-        y: 0.5 + cy * scaleY + layerOffset,
-        rot: 0,
-      });
-    });
-  };
+  const safeLayers = Math.max(1, layers || 1);
 
-  const shapeCells = {
+  const shapes = {
     pyramid: [
-      [0, -3],
-      [-1, -2],
+      [-3, 2], [-2, 2], [-1, 2], [0, 2], [1, 2], [2, 2], [3, 2],
+      [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1],
+      [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0],
+      [-1, -1], [0, -1], [1, -1],
       [0, -2],
-      [1, -2],
-      [-2, -1],
-      [-1, -1],
-      [0, -1],
-      [1, -1],
-      [2, -1],
-      [-3, 0],
-      [-2, 0],
-      [-1, 0],
-      [0, 0],
-      [1, 0],
-      [2, 0],
-      [3, 0],
-      [-3, 1],
-      [-2, 1],
-      [-1, 1],
-      [0, 1],
-      [1, 1],
-      [2, 1],
-      [3, 1],
-      [-2, 2],
-      [-1, 2],
-      [0, 2],
-      [1, 2],
-      [2, 2],
     ],
     diamond: [
       [0, -3],
-      [-1, -2],
-      [0, -2],
-      [1, -2],
-      [-2, -1],
-      [-1, -1],
-      [0, -1],
-      [1, -1],
-      [2, -1],
-      [-3, 0],
-      [-2, 0],
-      [-1, 0],
-      [0, 0],
-      [1, 0],
-      [2, 0],
-      [3, 0],
-      [-2, 1],
-      [-1, 1],
-      [0, 1],
-      [1, 1],
-      [2, 1],
-      [-1, 2],
-      [0, 2],
-      [1, 2],
+      [-1, -2], [0, -2], [1, -2],
+      [-2, -1], [-1, -1], [0, -1], [1, -1], [2, -1],
+      [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0],
+      [-2, 1], [-1, 1], [0, 1], [1, 1], [2, 1],
+      [-1, 2], [0, 2], [1, 2],
       [0, 3],
     ],
     cross: [
-      [0, -3],
-      [0, -2],
-      [-1, -1],
-      [0, -1],
-      [1, -1],
-      [-3, 0],
-      [-2, 0],
-      [-1, 0],
-      [0, 0],
-      [1, 0],
-      [2, 0],
-      [3, 0],
-      [-1, 1],
-      [0, 1],
-      [1, 1],
-      [0, 2],
-      [0, 3],
+      [0, -3], [0, -2], [-1, -1], [0, -1], [1, -1],
+      [-3, 0], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [3, 0],
+      [-1, 1], [0, 1], [1, 1], [0, 2], [0, 3],
     ],
     twin: [
-      [-3, -2],
-      [-2, -2],
-      [-3, -1],
-      [-2, -1],
-      [-1, -1],
-      [-3, 0],
-      [-2, 0],
-      [-1, 0],
-      [-3, 1],
-      [-2, 1],
-      [-3, 2],
-      [-2, 2],
-      [2, -2],
-      [3, -2],
-      [1, -1],
-      [2, -1],
-      [3, -1],
-      [1, 0],
-      [2, 0],
-      [3, 0],
-      [2, 1],
-      [3, 1],
-      [2, 2],
-      [3, 2],
-      [0, 0],
+      [-4, -1], [-3, -1], [-2, -1], [2, -1], [3, -1], [4, -1],
+      [-4, 0], [-3, 0], [-2, 0], [-1, 0], [1, 0], [2, 0], [3, 0], [4, 0],
+      [-4, 1], [-3, 1], [-2, 1], [2, 1], [3, 1], [4, 1],
+      [-3, 2], [-2, 2], [2, 2], [3, 2],
     ],
     petal: [
-      [0, -3],
-      [-1, -2],
-      [1, -2],
-      [-2, -1],
-      [0, -1],
-      [2, -1],
-      [-3, 0],
-      [-1, 0],
-      [0, 0],
-      [1, 0],
-      [3, 0],
-      [-2, 1],
-      [0, 1],
-      [2, 1],
-      [-1, 2],
-      [1, 2],
+      [0, -3], [-1, -2], [1, -2],
+      [-2, -1], [0, -1], [2, -1],
+      [-3, 0], [-1, 0], [0, 0], [1, 0], [3, 0],
+      [-2, 1], [0, 1], [2, 1],
+      [-1, 2], [1, 2],
       [0, 3],
     ],
   };
 
-  const baseCells = shapeCells[template] || shapeCells.pyramid;
-  const expandedCells = [];
-  for (let repeat = 0; repeat < 4; repeat += 1) {
-    baseCells.forEach(([x, y]) => {
-      expandedCells.push([x + (repeat % 2) * 0.5, y + Math.floor(repeat / 2) * 0.5]);
-    });
-  }
+  const base = shapes[template] || shapes.pyramid;
 
-  for (let layer = 0; layer < layers; layer += 1) {
-    const shrink = Math.max(0.58, 1 - layer * 0.055);
-    const cells = expandedCells.map(([x, y]) => [x * shrink, y * shrink]);
-    pushGrid(layer, cells);
+  for (let layer = 0; layer < safeLayers && positions.length < count; layer += 1) {
+    const keepRatio = 1 - layer * 0.16;
+    const layerCells = base
+      .filter(([cx, cy]) => Math.abs(cx) + Math.abs(cy) <= 5 * keepRatio)
+      .slice(0, Math.max(5, base.length - layer * 4));
+
+    const stepX = 0.082;
+    const stepY = 0.072;
+    const layerOffsetX = layer * 0.012;
+    const layerOffsetY = -layer * 0.012;
+
+    layerCells.forEach(([cx, cy]) => {
+      if (positions.length >= count) return;
+
+      positions.push({
+        layer,
+        x: 0.5 + cx * stepX + layerOffsetX,
+        y: 0.5 + cy * stepY + layerOffsetY,
+        rot: 0,
+      });
+    });
   }
 
   while (positions.length < count) {
-    const layer = positions.length % layers;
-    const row = Math.floor(positions.length / 5) % 5;
-    const col = positions.length % 5;
+    const i = positions.length;
+    const layer = Math.min(safeLayers - 1, i % safeLayers);
+    const col = i % 7;
+    const row = Math.floor(i / 7) % 5;
+
     positions.push({
       layer,
-      x: 0.5 + (col - 2) * 0.105 + layer * 0.018,
-      y: 0.5 + (row - 2) * 0.09 + layer * 0.018,
+      x: 0.5 + (col - 3) * 0.075 + layer * 0.012,
+      y: 0.5 + (row - 2) * 0.07 - layer * 0.012,
       rot: 0,
     });
   }
 
-  return positions
-    .map((pos) => ({
-      ...pos,
-      x: clamp(pos.x, 0.08, 0.92),
-      y: clamp(pos.y, 0.08, 0.88),
-      rot: 0,
-    }));
+  return positions.map((pos) => ({
+    ...pos,
+    x: clamp(pos.x, 0.1, 0.9),
+    y: clamp(pos.y, 0.12, 0.84),
+    rot: 0,
+  }));
 }
 
 function legacyGenerateTemplatePositions(template, count, layers) {
